@@ -48,7 +48,10 @@ function A:message(text)
  self:push({kind='message',text=text})
 end
 function A:callback(fn,...)
- local ok,result=pcall(fn,...)
+ local outer=self.in_callback;self.in_callback=true
+ local args=table.pack(...)
+ local ok,result=pcall(function() local result=fn(table.unpack(args,1,args.n));if not outer and self.plan_dirty then self.in_callback=false;self.plan_dirty=nil;self:plan() end;return result end)
+ self.in_callback=outer
  if not ok then self.fatal='E-CALLBACK';self.ctx.log:error(self.fatal);self:pause(self.ctx);self:invalidate(true) end
  return ok,result
 end
@@ -70,7 +73,8 @@ function A:commit(candidate,time_driven)
 end
 function A:event(command,initial)
  if self.mode=='blocked' or self.mode=='recovery' then return false end
- local working=M.copy(self.state);local changed,rollback=M.reconcile(working,self.sec)
+ local working=self.state;local changed,rollback=false,false
+ if M.due(working,self.sec) then working=M.copy(working);changed,rollback=M.reconcile(working,self.sec) elseif self.sec then working.trusted=self.sec end
  if changed or self.unsaved then
   if self:commit(working,true) then self.unsaved=false end
  else self.state=working;self.ctx.state=working end
@@ -81,10 +85,13 @@ function A:event(command,initial)
   if result~='OK' then success=false;if result~='STALE' then self:message(S[result] or S.INVALID) end
   elseif not same(candidate,self.state) then success=self:commit(candidate,false) end
  elseif initial or M.checkpoint_due(self.state,self.sec,self.last_save) then local checkpoint=not initial;self.checkpoint=checkpoint;self:commit(M.copy(self.state),true);self.checkpoint=false end
- self:prune();self:completion();self:effects();self:plan();return success
+ self.event_changed=changed;self:prune();self:completion();self:effects();self:plan();return success
 end
 function A:completion()
- local q=M.completions(self.state,true);local unseen=false
+ local q=M.completions(self.state,true);local unseen=false;local active={}
+ for _,ref in ipairs(q) do active[ref.id..':'..ref.gen]=true end
+ local r=self.state.ch.run;if r.st>=3 then active['chain:'..r.gen..':'..r.st]=true end
+ for key in pairs(self.shown) do if not active[key] then self.shown[key]=nil end end
  for _,r in ipairs(q) do local i=M.find(self.state,r.id);if i.sil==0 and not self.shown[r.id..':'..r.gen] then unseen=true;self.shown[r.id..':'..r.gen]=true end end
  self.queue=q
  local run=self.state.ch.run
@@ -119,23 +126,32 @@ function A:coverage(i)
  return S.coverage[Alerts.coverage(self.state,i,self.sec,self.ctx.device.keep_awake~=nil,self.lock_default and self.ctx.device.lock_timer)]
 end
 function A:plan()
+ if self.in_callback then self.plan_dirty=true;return end
  if self.pulse then self.pulse:cancel();self.pulse=nil end
  if not self.alive or self.mode=='blocked' or self.mode=='recovery' then return end
  local extra=self.unsaved and 1000 or nil
  if not self.unsaved and Alerts.choose(self.state,self.sec) then local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff;extra=math.max(self.signal and 100 or 1,(self.last_attempt and C.ATTEMPT_INTERVAL_MS or 1000)-elapsed) end
  local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,extra,self.page.id)
+ local old_coverage=self.coverage_warning
  self.coverage_warning=nil;self.chain_entry=nil
  local run=self.state.ch.run
  if run.st==1 or run.st==2 then local step=run.snap.steps[run.idx];self.chain_entry={chain=true,id=run.id,gen=run.gen,num=0,name=(run.snap.name~='' and run.snap.name or S.chains)..' '..run.idx..'/'..#run.snap.steps,icon=step.icon,type=0,st=run.st,dur=step.sec,val=H.value(run,self.sec),anc=run.anc,lim=0} end
  if run.st==1 and not (self.lock_default and self.ctx.device.lock_timer) and not (self.state.set.awake==1 and self.ctx.device.keep_awake and self.sec and H.remaining(run,self.sec)<=C.AWAKE_HORIZON_SEC) then self.coverage_warning=S.open_strip end
  for _,i in ipairs(self.state.items) do if i.type==0 and i.st==1 and self:coverage(i)==S.coverage[1] then self.coverage_warning=S.open_strip end end
+ if old_coverage~=self.coverage_warning then self:invalidate() end
  if self.ctx.device.keep_awake then
-  if Alerts.hold(self.state,self.sec) then self.ctx.device:keep_awake(math.min(14400000,((delay or 3600000)//1000+120)*1000));self.held=true
+  if Alerts.hold(self.state,self.sec) then
+   local needed=math.min(14400000,((delay or 3600000)//1000+120)*1000)
+   local remaining=self.held and self.awake_duration-((self.ms-self.awake_at)&0x7fffffff) or 0
+   if not self.held or needed>remaining+60000 then self.ctx.device:keep_awake(needed);self.awake_at=self.ms;self.awake_duration=needed;self.held=true end
   elseif self.held then self.ctx.device:keep_awake(0);self.held=false end
  end
  if delay then self.pulse=self.ctx:after(delay,function(ctx) self:callback(function()
-  self.pulse=nil;self:sample();self.peek=nil;self:event();self.tick_frames=(self.tick_frames or 0)+1
-  self.ctx:defer_full_refresh(5000);self:invalidate(self.tick_frames%120==0)
+  self.pulse=nil;local strip=self.warning or self.coverage_warning;self:sample();self.peek=nil;self:event()
+  local kind=self.page.kind
+  if kind=='deck' or kind=='detail' or kind=='chain_run' or kind=='completion' or self.event_changed or strip~=(self.warning or self.coverage_warning) then
+   self.tick_frames=(self.tick_frames or 0)+1;self.ctx:defer_full_refresh(5000);self:invalidate(self.tick_frames%120==0)
+  end
  end) end) end
 end
 function A:command(action,h,fields)
@@ -246,7 +262,13 @@ function A:diagnose()
  for k,v in pairs(self.ctx.capabilities) do self.diagnostics[#self.diagnostics+1]=k..': '..tostring(v) end
 end
 function A:input(ctx,ev)
+ local ok,result=self:callback(function() return self:input_event(ctx,ev) end);return ok and result or false
+end
+function A:input_event(ctx,ev)
+ if ev.type=='pointer' and ev.phase=='move' then return true end
+ if ev.type=='key' and ev.phase~='up' then return false end
  local began=ctx.clock:millis()
+ if ev.type=='pointer' and not self.signal and (ev.phase=='down' or ev.phase=='cancel') then self.ms=began;N.input(self,ev);return true end
  self:sample()
  if self.swallow then if ev.phase=='up' or ev.phase=='cancel' then self.swallow=nil end;return true end
  if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';local preview=self.signal.preview;Signal.stop(self);if preview then self:invalidate(true);return true end;self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st==3 or r.st==1 and r.cue==1 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end

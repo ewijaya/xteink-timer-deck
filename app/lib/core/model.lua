@@ -79,6 +79,15 @@ local function advance(s,now)
  end
  return H.advance(s,now,M) or changed
 end
+function M.due(s,now)
+ if not integer(now,1,C.MAX_INT) then return false end
+ if now<s.trusted then return true end
+ for _,i in ipairs(s.items) do
+  if i.st==1 and (i.type==0 and now>=i.anc or i.type==1 and M.value(i,now)==C.MAX_SEC) then return true end
+ end
+ if s.ch.run.st==1 and now>=s.ch.run.anc then return true end
+ local reset=M.auto_reset_due(s);return reset~=nil and now>=reset
+end
 function M.reconcile(s,now)
  if not integer(now,1,C.MAX_INT) then return false end
  local changed,rollback=false,false

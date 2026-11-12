@@ -1,4 +1,4 @@
-local Nav=require('lib.ui.nav')
+local Nav=require('lib.ui.nav');local S=require('lib.ui.strings')
 local W={}
 function W.pattern_enabled(a) return a.ctx.frontlight~=nil and a.state.set.light==1 end
 function W.count_enabled(a) return a.state.set.flash==1 or W.pattern_enabled(a) end
@@ -18,7 +18,7 @@ function W.button(a,g,x,y,w,h,label,action,arg,id,gen,filled,size)
  if action then Nav.hit(a,x,y,w,h,action,arg,id,gen) end
 end
 function W.top(a,g,title,back,action,label)
- if back then W.button(a,g,0,0,120,80,require('lib.ui.strings').back,'back',nil,nil,nil,false,22) end
+ if back then W.button(a,g,0,0,120,80,S.back,'back',nil,nil,nil,false,22) end
  local size=back and a.fonts[32]:measure(title)>190 and 26 or 32
  W.text(a,g,back and 240 or 20,24,W.fit(a,title,back and 208 or 440,size),size,back and 'center' or 'left')
  if action then W.button(a,g,360,0,120,80,label,action,nil,nil,nil,false,22) end
@@ -27,8 +27,8 @@ end
 function W.pager(a,g,page,count,bottom)
  a.page_count=count;if count<=1 then return end
  local y=(bottom or 712)-56
- W.text(a,g,240,y+17,string.format(require('lib.ui.strings').pager,page+1,count),22,'center')
- W.text(a,g,24,y+17,require('lib.ui.strings').prev_glyph,22);W.text(a,g,456,y+17,require('lib.ui.strings').next_glyph,22,'right')
+ W.text(a,g,240,y+17,string.format(S.pager,page+1,count),22,'center')
+ W.text(a,g,24,y+17,S.prev_glyph,22);W.text(a,g,456,y+17,S.next_glyph,22,'right')
  Nav.hit(a,0,y,240,56,'page',-1);Nav.hit(a,240,y,240,56,'page',1)
 end
 function W.rows(a,g,rows,per)
@@ -36,13 +36,13 @@ function W.rows(a,g,rows,per)
  for n=1,per do
   local row=rows[page*per+n];if not row then break end
   local y=80+(n-1)*96
-  if row.armed then W.text(a,g,20,y+4,W.fit(a,string.format(a.state.ch.run.id==row.arg and a.state.ch.run.st~=0 and require('lib.ui.strings').stop_delete_label or require('lib.ui.strings').delete_label,row.delete_label or row.label),440,22),22);W.button(a,g,0,y+40,240,56,require('lib.ui.strings').delete,row.item and 'delete' or 'ch_delete_inline',row.arg,row.id,row.gen);W.button(a,g,240,y+40,240,56,require('lib.ui.strings').keep,'ch_keep')
+  if row.armed then W.text(a,g,20,y+4,W.fit(a,string.format(a.state.ch.run.id==row.arg and a.state.ch.run.st~=0 and S.stop_delete_label or S.delete_label,row.delete_label or row.label),440,22),22);W.button(a,g,0,y+40,240,56,S.delete,row.item and 'delete' or 'ch_delete_inline',row.arg,row.id,row.gen);W.button(a,g,240,y+40,240,56,S.keep,'ch_keep')
   else W.text(a,g,20,y+16,W.fit(a,row.label,row.play and 320 or 440,row.value and 26 or 32),row.value and 26 or 32)
   if row.value then W.text(a,g,20,y+(row.note and 40 or 53),W.fit(a,row.value,row.play and 320 or 440,22),22) end
   if row.note then W.text(a,g,20,y+67,W.fit(a,row.note,440,22),22) end
   g:line(16,y+95,464,y+95,{color=a.ink})
   if row.action then Nav.hit(a,0,y,row.play and 360 or 480,96,row.action,row.arg,row.id,row.gen) end
-  if row.play then W.button(a,g,360,y,120,96,require('lib.ui.strings').start,'ch_start',row.arg) end end
+  if row.play then W.button(a,g,360,y,120,96,S.start,'ch_start',row.arg) end end
  end
  W.pager(a,g,page,count)
  a.page_count=count
@@ -50,15 +50,15 @@ end
 local cache,order={},{}
 function W.icon(a,g,index,x,y,size,nocache)
  if index==0 then g:circle(x+size//2,y+size//2,size//2-2,{color=a.ink,line_width=2});return end
- local key=index..':'..size;local lines=not nocache and cache[key]
+ local key=index..':'..size..':'..x..':'..y;local lines=not nocache and cache[key]
  if not lines then
   lines={};for _,s in ipairs(require('lib.gen.icons')[index]) do
-   local points={};for k=1,#s do points[k]=(s:byte(k)-32)*size//94 end;lines[#lines+1]=points
+   local points={};for k=1,#s do points[k]=(s:byte(k)-32)*size//94+(k%2==1 and x or y) end;lines[#lines+1]=points
   end
   if not nocache then
    if #order==12 then cache[table.remove(order,1)]=nil end;order[#order+1]=key;cache[key]=lines
   end
  end
- for _,line in ipairs(lines) do local p={};for k,v in ipairs(line) do p[k]=v+(k%2==1 and x or y) end;g:polyline(p,{color=a.ink,line_width=size>=96 and 6 or size>=56 and 4 or 3}) end
+ for _,line in ipairs(lines) do g:polyline(line,{color=a.ink,line_width=size>=96 and 6 or size>=56 and 4 or 3}) end
 end
 return W

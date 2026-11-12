@@ -84,3 +84,19 @@ do
  end end end end
  print('HOST MOCK Passed TU22')
 end
+-- TU24: a physical tap runs one planner and at most two state copies; idle Settings stays still.
+do
+ local cc=R.new();local aa=App.new(cc);aa:command('CREATE',nil,{dur=7200});aa:draw(cc,R.canvas(cc));cc:advance(500)
+ local original,plan=M.copy,App.plan;local copies,depth,plans=0,0,0
+ M.copy=function(v) if depth==0 then copies=copies+1 end;depth=depth+1;local out=original(v);depth=depth-1;return out end
+ App.plan=function(self) if not self.in_callback then plans=plans+1 end;return plan(self) end
+ for _,phase in ipairs({'down','move','move','move','move','move','up'}) do aa:input(cc,{type='pointer',phase=phase,gesture='tap',x=440,y=100}) end
+ M.copy=original;App.plan=plan
+ assert(copies<=2 and plans==1,'TU24 copies/plans '..copies..'/'..plans);assert(aa.state.items[1].st==1)
+ aa:push({kind='settings'});aa:plan();local waves=#cc.waves;local awake=#cc.awake_calls;cc:advance(300000)
+ assert(#cc.waves==waves,'TU24 Settings pulse redrew');assert(#cc.awake_calls-awake<10,'awake renewal churn')
+ local root=aa.state;local before=J:encode(root);assert(not M.due(root,aa.sec));assert(J:encode(root)==before)
+ collectgarbage('collect');collectgarbage('stop');local base=collectgarbage('count');for _=1,100 do local copy=M.copy(root);M.reconcile(copy,aa.sec) end;local old=(collectgarbage('count')-base)*1024
+ collectgarbage('restart');collectgarbage('collect');collectgarbage('stop');base=collectgarbage('count');for _=1,100 do aa:event() end;local current=(collectgarbage('count')-base)*1024;collectgarbage('restart')
+ assert(current<old,'idle heap churn did not improve');print('HOST MOCK Passed TU24 copies '..copies..' plans '..plans..'; idle allocation '..math.floor(current)..' vs copying '..math.floor(old))
+end
