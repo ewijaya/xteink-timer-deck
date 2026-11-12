@@ -7,7 +7,7 @@ function D.draw(a,g)
  local days,time,unit=F.detail(v or 0,i.type==0,minutes)
  if not v then time='--:--' end
  if a.peek then days,time,unit=a.peek.days,a.peek.time,'at '..a.peek.at end
- Draw.ring(g,v or 0,i.type==0 and i.dur or 1,i.type==1 and 'Stopwatch' or ({'Ready','Running','Paused','Finished'})[i.st+1],a.ink,a.state.set.style)
+ Draw.ring(g,v or 0,i.type==0 and i.dur or 1,i.type==1 and 'Stopwatch' or ({'Ready','Running','Paused','Finished'})[i.st+1],a.ink)
  W.icon(a,g,i.icon,212,130,56);W.text(a,g,240,200,days~='' and days or string.format('#%02d',i.num),22,'center')
  local h=days~='' and 56 or #time>5 and 64 or 96;Digits.draw(g,time,(480-Digits.width(time,h))//2,248,h,a.ink)
  N.hit(a,70,235,340,112,'peek')

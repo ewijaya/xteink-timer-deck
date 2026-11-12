@@ -1,6 +1,6 @@
 # Platform findings
 
-HOST MOCK only. Firmware has not been measured in this repository. All VERIFY items remain open.
+Host suites are HOST MOCK only. On 2026-11-12 the owner reported successful use of 0.3.0 but a hang on Style. The cause is unconfirmed; no firmware or diagnostic measurements were supplied. All VERIFY items remain open. Version 0.3.1 removes Style at the owner’s request; device retest is pending.
 
 | ID | Status | Probe / question |
 | --- | --- | --- |

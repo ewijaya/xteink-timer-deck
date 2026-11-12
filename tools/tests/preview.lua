@@ -34,8 +34,8 @@ a.state=M.new(a.sec);a.mode='ok';a.flash=false;a.page={kind='deck'};a.stack={};a
 a.page={kind='deck'};for n=1,10 do a:command('CREATE',nil,{dur=600,icon=n,name='Timer '..n}) end;a:plan();emit('chain-deck-ten')
 local run=a.state.ch.run;a:command('CH_STOP',nil,{gen=run.gen,step=run.snap.steps[run.idx].id,round=run.round});emit('chain-result')
 a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:command('CREATE_START',nil,{dur=1000,name='Tea',icon=1});a.state.items[1].anc=a.sec+90;a.page={kind='detail',id=1}
-for style=0,3 do a.state.set.style=style;emit('style-'..style..'-hot');a.state.items[1].st=2;a.state.items[1].val=90;a.state.items[1].anc=0;emit('style-'..style..'-paused');a.state.items[1].st=1;a.state.items[1].anc=a.sec+90 end
-a.page={kind='settings'};a:action({action='setting',arg='style'});emit('style-picker');a:action({action='back'});a:action({action='sync'});emit('sync')
+emit('ion-hot');a.state.items[1].st=2;a.state.items[1].val=90;a.state.items[1].anc=0;emit('ion-paused')
+a.page={kind='settings'};a:action({action='setting',arg='app'});emit('appearance-picker');a:action({action='back'});a:action({action='sync'});emit('sync')
 a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:action({action='new_watch'});emit('watch-form');a:action({action='save_form'});a.page={kind='detail',id=1};a:command('PRIMARY',{id=1,gen=0});emit('watch-running');a:action({action='actions'});emit('item-actions')
 a.page={kind='message',text='Could not save. Try again.'};emit('message');a.page={kind='confirm',text='Discard changes?'};emit('confirmation')
 a.state=M.new(a.sec);for n=1,3 do a.state=M.command(a.state,{action='CREATE_START',dur=1,name='Timer '..n},a.sec-100) end;M.reconcile(a.state,a.sec);a.queue=M.completions(a.state,true);a.queue_pos=2;a.page={kind='completion'};emit('away-queue')

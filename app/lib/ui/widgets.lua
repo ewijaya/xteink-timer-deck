@@ -10,8 +10,8 @@ function W.fit(a,text,width,size)
  return text..'...'
 end
 function W.button(a,g,x,y,w,h,label,action,arg,id,gen,filled,size)
- local style=a.state.set.style;local primary=filled and a.page.kind~='picker';local fill=filled and not (primary and style==1)
- g:rect(x+2,y+2,w-4,h-4,{color=a.ink,line_width=primary and style==1 and 4 or 2,radius=primary and style==2 and h//2-2 or primary and style==3 and 0 or 8,fill=fill or false})
+ local fill=filled or false
+ g:rect(x+2,y+2,w-4,h-4,{color=a.ink,line_width=2,radius=8,fill=fill})
  local f=a.fonts[size or 26];g:text(x+w//2,y+(h-f.line_height)//2,W.fit(a,label,w-12,size),{font=f,align='center',color=fill and a.paper or a.ink})
  if action then Nav.hit(a,x,y,w,h,action,arg,id,gen) end
 end

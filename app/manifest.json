@@ -2,7 +2,7 @@
   "api": "2.18",
   "app_id": "timerdeck",
   "display_name": "Timer Deck",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Ten independent countdowns and stopwatches, with chains. No sound or vibration: alerts are a screen flash and a light pulse.",
   "entry": "index.lua",
   "requires": [

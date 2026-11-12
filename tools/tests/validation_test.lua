@@ -18,7 +18,21 @@ a.page={kind='deck'};for n=2,10 do a:command('CREATE',nil,{dur=100,name='Timer '
 for n=10,0,-1 do draw();if n>0 then a:command('DELETE',{id=n,gen=0}) end end
 a.page={kind='deck'};a.stack={};a:action({action='chains'});a:action({action='ch_new'});a:action({action='ch_template',arg='Tea'});draw();a:action({action='ch_step',arg=1});draw();a:action({action='ch_step_save'});a:action({action='ch_save'});draw();a:action({action='ch_start'});draw();a:action({action='ch_more'});draw();a:action({action='ch_steps'});draw()
 a.page={kind='sync'};c.files:write('timerdeck-import.txt','timer | Tea | 10');a:action({action='import'});draw();a:command('ERASE')
-for style=0,3 do a:command('SETTINGS',nil,{values={style=style}});a.page={kind='settings'};a:action({action='setting',arg='style'});draw();a:action({action='back'}) end
+-- Older saves keep their settings and timers; all render using the default appearance.
+local legacy_frame
+for style=0,3 do
+ a:command('SETTINGS',nil,{values={style=style}})
+ assert(M.valid(a.state));a.page={kind='settings'};draw()
+ for _,hit in ipairs(a.hits) do assert(hit.arg~='style') end
+ a:action({action='setting',arg='style'});assert(a.page.kind=='settings' and a.state.set.style==style)
+ a.page.offset=1;draw();for _,hit in ipairs(a.hits) do assert(hit.arg~='style') end
+ a:command('CREATE',nil,{dur=100});local item=a.state.items[1];a.page={kind='detail',id=item.id}
+ local canvas=R.canvas(c);a:draw(c,canvas);local frame=assert(J:encode(canvas.commands))
+ if legacy_frame then assert(frame==legacy_frame) else legacy_frame=frame end
+ a:command('DELETE',{id=item.id,gen=item.gen})
+end
+print('HOST MOCK legacy style compatibility and retired settings navigation passed')
+a.page={kind='settings'};a:action({action='setting',arg='app'});draw();a:action({action='back'})
 -- Warm lazy modules and cache, then measure retained growth without host evidence logs.
 a.page={kind='deck'};a.stack={};clean_logs();collectgarbage('collect');local start=collectgarbage('count')*1024
 for _=1,100 do a:command('CREATE',nil,{dur=10});local i=a.state.items[1];a:command('DELETE',{id=i.id,gen=i.gen});a:push({kind='settings'});a:pop();c:advance(2000);clean_logs() end

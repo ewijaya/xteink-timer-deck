@@ -99,7 +99,7 @@ function U.draw(a,g)
  elseif kind=='chain_busy' then rows={{label=S.chain_busy},{label=S.active_chain,action='chain_run'}}
  elseif kind=='chain_run' and r.st~=0 then
   local step=r.snap.steps[r.idx];local value=H.value(r,a.sec);local days,time=F.detail(value or 0,true,not P.seconds(a.state.set.secs,true,{type=0},value or 0));local t=token(r);p.token=t
-  Draw.ring(g,value or 0,step.sec,r.st==1 and 'Running' or 'Paused',a.ink,a.state.set.style)
+  Draw.ring(g,value or 0,step.sec,r.st==1 and 'Running' or 'Paused',a.ink)
   W.text(a,g,240,180,S.steps..' '..r.idx..' / '..#r.snap.steps,26,'center');W.text(a,g,240,218,W.fit(a,step.name,330,26),26,'center')
   local height=#time>5 and 64 or 96;Digits.draw(g,time,(480-Digits.width(time,height))//2,270,height,a.ink)
   W.text(a,g,240,375,P.seconds(a.state.set.secs,true,{type=0},value or 0) and 'SEC' or 'MIN',22,'center');W.text(a,g,240,410,S.rounds..' '..r.round..' / '..r.snap.rounds,22,'center');W.text(a,g,240,440,days,22,'center')

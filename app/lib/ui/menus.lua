@@ -7,7 +7,7 @@ function U.draw(a,g)
  elseif kind=='actions' then rows={{label=S.edit,action='edit'},{label=S.delete,action='delete',id=a.page.id,gen=a.page.gen}}
  else
   local set=a.state.set
-  rows={{label=S.appearance,value=S.appearances[set.app+1],action='setting',arg='app'},{label=S.style,value=S.styles[set.style+1],action='setting',arg='style'},{label=S.default_alert,value=C.PATTERNS[set.pat+1],action='setting',arg='pat'},{label=S.default_count,value=tostring(set.cnt),action='setting',arg='cnt'},{label=S.flash,value=S.onoff[set.flash+1],action='setting',arg='flash'}}
+  rows={{label=S.appearance,value=S.appearances[set.app+1],action='setting',arg='app'},{label=S.default_alert,value=C.PATTERNS[set.pat+1],action='setting',arg='pat'},{label=S.default_count,value=tostring(set.cnt),action='setting',arg='cnt'},{label=S.flash,value=S.onoff[set.flash+1],action='setting',arg='flash'}}
   if a.ctx.frontlight then rows[#rows+1]={label=S.light,value=S.onoff[set.light+1],action='setting',arg='light'} end
   rows[#rows+1]={label=S.seconds,value=S.seconds_modes[set.secs+1],action='setting',arg='secs'}
   rows[#rows+1]={label=S.awake,value=S.onoff[set.awake+1]..' - '..S.battery,action='setting',arg='awake'}

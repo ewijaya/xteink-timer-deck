@@ -1,8 +1,8 @@
 # Local installation
 
-Candidate **0.3.0 is host-validated only**. Installation and every device check are Not run. The encrypted package is built with the pinned community packager; its decrypted content is compared byte-for-byte with the sources.
+Candidate **0.3.1 awaits device testing**. The owner reported successful use of 0.3.0 and a freeze on its Style page. Version 0.3.1 removes that page and uses the default Ion drawing throughout. Formal device checks remain open. The encrypted package is built with the pinned community packager; its decrypted content is compared byte-for-byte with the sources.
 
-1. Copy `dist/timerdeck-0.3.0.xtapp` to the SD-card root over USB and eject safely.
+1. Copy `dist/timerdeck-0.3.1.xtapp` to the SD-card root over USB and eject safely.
 2. On the reader open All Files, tap the package, then install.
 3. If Ink App is absent: Settings → About → tap Model ten times (community guidance).
 4. Open Ink App → Timer Deck. Menu → Help / About, then tap the title seven times to open Device information. Photograph its pages for DV01.

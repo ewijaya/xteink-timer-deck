@@ -196,9 +196,10 @@ function A:action(h)
  elseif action=='use' then if self:command('SETTINGS',nil,{values={[p.key]=p.value}}) then self.preview_setting=nil;self:pop();self:invalidate(true) end
  elseif action=='menu' or action=='settings' then self:push({kind=action})
  elseif action=='setting' then
-  local options={app=S.appearances,style=S.styles,secs=S.seconds_modes,pat=C.PATTERNS,cnt={'1','2','3','4','5'}}
+  if arg=='style' then return end -- Retired setting; preserve old saved values only.
+  local options={app=S.appearances,secs=S.seconds_modes,pat=C.PATTERNS,cnt={'1','2','3','4','5'}}
   if not options[arg] then self:command('SETTINGS',nil,{values={[arg]=1-self.state.set[arg]}})
-  else self:push({kind='picker',title=S[arg] or S.settings,key=arg,value=self.state.set[arg]-(arg=='cnt' and 1 or 0),options=options[arg],setting=true,preview=arg=='app' or arg=='style'}) end
+  else self:push({kind='picker',title=S[arg] or S.settings,key=arg,value=self.state.set[arg]-(arg=='cnt' and 1 or 0),options=options[arg],setting=true,preview=arg=='app'}) end
  elseif action=='help' then self:help()
  elseif action=='about_tap' then self.taps=(self.taps or 0)+1;if self.taps>=7 then self.taps=0;self:diagnose();self:push({kind='info'}) end
  elseif action=='page' then local count=math.max(1,self.page_count or 1);p.offset=p.kind=='deck' and math.max(0,math.min(count-1,(p.offset or 0)+arg)) or ((p.offset or 0)+arg)%count;self.focus=nil

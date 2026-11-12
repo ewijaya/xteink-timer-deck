@@ -12,7 +12,7 @@ All results below are **HOST MOCK**. The authoritative last-run statuses, durati
 | TU01–TU08 | `app_test.lua`, `chains_test.lua`, `validation_test.lua`, preview hit-map audit: geometry, touch/key routes, stale targets, draft and control flows |
 | TU09–TU11 | `validation_test.lua`: native overlay crossing a deadline, draft restoration, normalized name, lock selection/resume; `app_test.lua` and storage suites cover related flows |
 | TU12–TU13 | `app_test.lua`: Help pagination/about taps and lazy module isolation |
-| TU14 | `attention_test.lua`: appearance inversion table and flash negation; style previews |
+| TU14 | `attention_test.lua`: appearance inversion table and flash negation; Ion and appearance previews; legacy style compatibility in `validation_test.lua` |
 | TU15 | `validation_test.lua`: injected draw error, one logged fatal, Retry and retained mutation |
 | TU16 | `preview.lua` → `preview.py`: per-screen light/dark PNGs, command JSON and contact sheets, inspected by the implementing agent |
 | TM01 | `validation_test.lua`: full module/screen walk, icon picker, heap proxy and 100 mutation/screen cycles |

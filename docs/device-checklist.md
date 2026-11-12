@@ -1,6 +1,6 @@
 # Owner device checklist
 
-No device checks have run. Record date, firmware, actual outcome and photographs here. Candidate 0.3.0 is ready for owner testing. DV01–DV15 are all queued; every result is **Not run**. Start with DV01. Host tests do not change these statuses.
+2026-11-12 owner report on 0.3.0: app works, but the Style page hangs. Installation/opening is reported successful; firmware, diagnostic photographs and a reproducible freeze sequence have not been supplied. DV01 is **Partial**; DV02–DV15 remain queued, **Not run** as structured checks. V01–V14 remain open. Candidate 0.3.1 removes Style; check both Settings pages, Appearance, timer detail and saved timers after upgrading. Host tests do not establish device results.
 
 | ID | Step | Gate |
 | --- | --- | --- |

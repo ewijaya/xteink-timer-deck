@@ -1,8 +1,8 @@
 # Timer Deck for XTEINK X4 Pro
 
-**0.3.0 — host-validated candidate. Device validation has not run.** Lua 5.5 with 32-bit integers and numbers, InkApp API 2.18, portrait 480×800. Functional baseline: Pebble Timer Deck 0.7.0 at `202dbc6`; the later 0.7.1 changes were not adopted.
+**0.3.1 — host candidate. Owner reported successful use of 0.3.0 and a freeze on its Style page; formal device validation remains open.** Lua 5.5 with 32-bit integers and numbers, InkApp API 2.18, portrait 480×800. Functional baseline: Pebble Timer Deck 0.7.0 at `202dbc6`; the later 0.7.1 changes were not adopted.
 
-Ten independent countdowns and stopwatches, five saved chains with up to ten steps and nine rounds, touch and side-key controls, four monochrome styles, an optional read-only lockscreen page, and transactional text-file import/export. State mutations save before success or alert effects. A private CRC-checked backup provides recovery.
+Ten independent countdowns and stopwatches, five saved chains with up to ten steps and nine rounds, touch and side-key controls, one consistent monochrome style, an optional read-only lockscreen page, and transactional text-file import/export. State mutations save before success or alert effects. A private CRC-checked backup provides recovery.
 
 This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.
 
@@ -12,7 +12,7 @@ Time comes from saved whole-second anchors. Time away and forward clock changes 
 
 Run `make test`, `make preview`, `make icons`, or `make package`. The local toolchain archive must be at `build/toolchain/lua-5.5.0.tar.gz`; setup verifies its pinned hash and builds with `LUA_32BITS`. Python with Pillow and cryptography, make and a C compiler must already be installed. Nothing downloads dependencies or imports code from sibling repositories.
 
-- `dist/timerdeck-0.3.0.xtapp`: current package; adjacent JSON report and `SHA256SUMS` document decryption and source equality.
+- `dist/timerdeck-0.3.1.xtapp`: current package; adjacent JSON report and `SHA256SUMS` document decryption and source equality.
 - `build/gate-results.json`: actual check outcomes, with `device_tests_run: false`.
 - `build/validation-results.json`: HOST MOCK heap and instruction-count proxies.
 - `build/previews/`: 480×800 HOST MOCK PNGs, draw-command JSON and contact sheets.
