@@ -6,7 +6,7 @@ local Alerts=require('lib.core.alerts');local Signal=require('lib.platform.signa
 local A={};A.__index=A
 local function same(a,b) if type(a)~=type(b) then return false end;if type(a)~='table' then return a==b end;for k,v in pairs(a) do if not same(v,b[k]) then return false end end;for k in pairs(b) do if a[k]==nil then return false end end;return true end
 function A.new(ctx)
- local self=setmetatable({ctx=ctx,features={lock=true,sync=false},page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
+ local self=setmetatable({ctx=ctx,features={lock=true,sync=true},page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
  for _,px in ipairs({22,26,32,40}) do self.fonts[px]=ctx.fonts:size(px) end
  self:sample();self.started_ms=self.ms;self.original_light=ctx.frontlight and ctx.frontlight:get();self.last_save=self.sec or 0;self.changed_at=self.ms
  local state,status=Store.load(ctx,self.sec);self.state=state or M.new();self.mode=status
@@ -141,6 +141,7 @@ function A:help()
 end
 function A:action(h)
  local action,arg=h.action,h.arg;local p=self.page
+ if action=='sync' or action=='import' or action=='export' then return require('lib.ui.sync').action(self,h) end
  if action:sub(1,3)=='ch_' or action=='chains' or action=='chain_run' then return require('lib.ui.chains').action(self,h) end
  if action=='back' then
   if p.kind=='deck' then
@@ -199,7 +200,7 @@ function A:action(h)
  elseif action=='about_tap' then self.taps=(self.taps or 0)+1;if self.taps>=7 then self.taps=0;self:diagnose();self:push({kind='info'}) end
  elseif action=='page' then p.offset=((p.offset or 0)+arg)%math.max(1,self.page_count or 1);self.focus=nil
  elseif action=='next_item' then local _,n=M.find(self.state,p.id);if n and #self.state.items>0 then p.id=self.state.items[(n-1+arg)%#self.state.items+1].id;self.peek=nil end
- elseif action=='peek' then local i=M.find(self.state,p.id);if i and self.sec then local d,t=F.detail(M.value(i,self.sec),i.type==0,false);self.peek={days=d,time=t,at=F.clock(self.now)} end
+ elseif action=='peek' then local i=M.find(self.state,p.id);if i and self.sec then local d,t=F.detail(M.value(i,self.sec),i.type==0,false);local value=M.value(i,self.sec);if value<86400 then t=string.format('%d:%02d:%02d',value//3600,value//60%60,value%60) end;self.peek={days=d,time=t,at=(F.clock(self.now):gsub('(%d+:%d%d)','%1:'..string.format('%02d',self.now.second or 0)))} end
  elseif action=='browse' then if #self.queue>0 then self.queue_pos=((self.queue_pos-1+arg)%#self.queue)+1 end
  elseif action=='dismiss' or action=='clear_all' then self:command('DISMISS',nil,{targets=action=='dismiss' and {{id=h.id,gen=h.gen}} or self.queue})
  elseif action=='erase' then self:confirm(S.erase_text,function() if self:command('ERASE') then
@@ -242,6 +243,7 @@ function A:draw(ctx,g)
  elseif kind=='icons' or kind=='picker' then require('lib.ui.pickers').draw(self,g)
  elseif kind=='menu' or kind=='settings' or kind=='actions' then require('lib.ui.menus').draw(self,g)
  elseif kind=='help' or kind=='info' then require('lib.ui.info').draw(self,g)
+ elseif kind=='sync' then require('lib.ui.sync').draw(self,g)
  elseif kind=='completion' then Completion.draw(self,g)
  elseif kind:sub(1,6)=='chain_' or kind=='chains' then require('lib.ui.chains').draw(self,g)
  elseif kind=='coverage' then

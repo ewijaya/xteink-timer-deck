@@ -8,6 +8,11 @@ function P.draw(a,g)
    if p.value==n then g:rect(x+2,y+2,92,84,{color=a.ink,line_width=4}) end
   end
   W.text(a,g,240,720,C.ICON_NAMES[p.value] or S.none,26,'center')
+ elseif p.key=='style' then
+  for n,label in ipairs(p.options) do W.button(a,g,16+(n-1)%2*232,88+(n-1)//2*100,216,88,label,'pick',n-1,nil,nil,p.value==n-1) end
+  require('lib.ui.draw').ring(g,75,100,'Running',a.ink,p.value,240,490,150)
+  require('lib.ui.digits').draw(g,'04:00',146,460,64,a.ink)
+  W.button(a,g,16,696,448,88,S.use,'use',nil,nil,nil,true)
  else
   for n,label in ipairs(p.options) do local y=88+(n-1)*104
    W.button(a,g,16,y,p.key=='pat' and 312 or 448,96,label,'pick',n-1,nil,nil,p.value==n-1,26)

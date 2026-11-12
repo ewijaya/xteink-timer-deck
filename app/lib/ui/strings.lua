@@ -22,6 +22,7 @@ return {
  no_chains='No chains yet',new_chain='New chain',empty_chain='Empty chain',from_deck='From Deck timers',rounds='Rounds',steps='Steps',add_step='Add step',duplicate='Duplicate',move_up='Move up',move_down='Move down',remove='Remove',
  start_chain='Start',active_chain='View active chain',chain_busy='A chain is already active',chain_min='Add at least 2 steps',chain_max='This chain has 10 steps',chain_full='You have 5 saved chains',
  restart='Restart step',skip='Skip step',stop='Stop chain',stop_question='Stop this chain?',stop_delete='Stop and delete this chain?',chain_complete='Chain complete',chain_stopped='Chain stopped',again='Run again',all_chains='All chains',add='Add steps',
+ file_error='Could not write the file. Try again.',import_ok='Imported definitions. See timerdeck-import-result.txt.',import_result_error='Imported, but the result file could not be written.',last25='RUNNING · LAST 25%',last10='LAST 10%',
  export='Export deck',import='Import file',exported='Saved to /AppFiles/timerdeck/timerdeck-export.txt',DUPLICATE='This file was already imported.',import_failed='Nothing was imported. See timerdeck-import-result.txt.',import_missing='No import file found. Put timerdeck-import.txt in /AppFiles/timerdeck/.',
  help_text=[[No sound
 This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.

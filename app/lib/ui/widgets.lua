@@ -10,13 +10,15 @@ function W.fit(a,text,width,size)
  return text..'...'
 end
 function W.button(a,g,x,y,w,h,label,action,arg,id,gen,filled,size)
- g:rect(x+2,y+2,w-4,h-4,{color=a.ink,line_width=2,radius=8,fill=filled or false})
- local f=a.fonts[size or 26];g:text(x+w//2,y+(h-f.line_height)//2,W.fit(a,label,w-12,size),{font=f,align='center',color=filled and a.paper or a.ink})
+ local style=a.state.set.style;local primary=filled and a.page.kind~='picker';local fill=filled and not (primary and style==1)
+ g:rect(x+2,y+2,w-4,h-4,{color=a.ink,line_width=primary and style==1 and 4 or 2,radius=primary and style==2 and h//2-2 or primary and style==3 and 0 or 8,fill=fill or false})
+ local f=a.fonts[size or 26];g:text(x+w//2,y+(h-f.line_height)//2,W.fit(a,label,w-12,size),{font=f,align='center',color=fill and a.paper or a.ink})
  if action then Nav.hit(a,x,y,w,h,action,arg,id,gen) end
 end
 function W.top(a,g,title,back,action,label)
  if back then W.button(a,g,0,0,120,80,require('lib.ui.strings').back,'back',nil,nil,nil,false,22) end
- W.text(a,g,back and 240 or 20,24,W.fit(a,title,action and 220 or back and 320 or 440,32),32,back and 'center' or 'left')
+ local size=back and a.fonts[32]:measure(title)>190 and 26 or 32
+ W.text(a,g,back and 240 or 20,24,W.fit(a,title,back and 208 or 440,size),size,back and 'center' or 'left')
  if action then W.button(a,g,360,0,120,80,label,action,nil,nil,nil,false,22) end
  g:line(0,79,479,79,{color=a.ink,line_width=2})
 end

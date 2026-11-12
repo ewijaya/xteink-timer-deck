@@ -19,9 +19,11 @@ function D.draw(a,g)
    local labelsize=a.fonts[32]:measure(F.label(i))<=145 and 32 or 26
    W.text(a,g,80,y+9,W.fit(a,F.label(i),155,labelsize),labelsize)
    local valuesize=a.fonts[40]:measure(value)<=100 and 40 or a.fonts[26]:measure(value)<=124 and 26 or 22
-   W.text(a,g,392,y+9,W.fit(a,value,124,valuesize),valuesize,'right')
+   local hot=v and i.type==0 and i.st==1 and F.ratio(v,i.dur,100)<=10
+   if hot then g:rect(266,y+5,130,46,{color=a.ink,fill=true}) end
+   W.text(a,g,392,y+9,W.fit(a,value,124,valuesize),valuesize,'right',hot and a.paper or a.ink)
    if height>=79 then W.text(a,g,80,y+43,i.lim==1 and S.limit or i.st~=1 and S.states[i.st+1] or '',22) end
-   if v and i.type==0 and (i.st==1 or i.st==2) then g:rect(80,y+height-10,F.ratio(v,i.dur,312),4,{color=a.ink,fill=true}) end
+   if v and i.type==0 and (i.st==1 or i.st==2) then require('lib.ui.draw').bar(g,80,y+height-10,312,v,i.dur,a.ink,a.state.set.style) end
    N.hit(a,0,y,400,height,i.chain and 'chain_run' or 'detail',nil,i.id,i.gen)
    W.button(a,g,400,y,80,height,i.st==1 and 'II' or i.st==3 and 'OK' or '>',i.chain and 'ch_primary' or 'primary',i.chain and {gen=a.state.ch.run.gen,step=a.state.ch.run.snap.steps[a.state.ch.run.idx].id,round=a.state.ch.run.round} or nil,i.id,i.gen)
   end
