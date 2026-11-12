@@ -20,3 +20,10 @@ local g=R.canvas(c);App.draw_fatal(c,g,'E-DRAW');print(assert(J:encode({name='HO
 for _,kind in ipairs({'recovery','blocked'}) do a.page={kind=kind};emit(kind) end
 a.mode='ok';a.page={kind='deck'};a.state=M.new(a.sec);a.state=M.command(a.state,{action='CREATE_START',dur=18000,name='Slow roast'},a.sec);a:plan();emit('coverage-deck');a.page={kind='coverage'};emit('coverage-help')
 a.page={kind='completion'};a.state=s;a.queue=M.completions(s,true);a.queue_pos=1;a.flash=true;emit('flash');a.flash=false
+local files={};for path in io.lines('build/scripts.txt') do local f=assert(io.open('app/'..path));files[path]=f:read('a');f:close() end
+for _,case in ipairs({'empty','running','finished','paused','watch','invalid'}) do
+ local state=M.new(a.sec)
+ if case~='empty' and case~='invalid' then state=M.command(state,{action='CREATE',type=case=='watch' and 1 or 0,dur=240,name='Tea'},a.sec);state=M.command(state,{action='PRIMARY',id=1,gen=0},a.sec) end
+ if case=='paused' then state=M.command(state,{action='PRIMARY',id=1,gen=1},a.sec) elseif case=='finished' then state.items[1].anc=a.sec-1 elseif case=='invalid' then state={v=2} end
+ for _,dark in ipairs({false,true}) do local lock=R.session(files,state,'lock');lock.dark=dark;local canvas=lock:draw();print(assert(J:encode({name='HOST-MOCK-lock-'..case..(dark and '-dark' or '-light'),dark=dark,commands=canvas.commands}))) end
+end

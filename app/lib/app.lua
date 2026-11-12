@@ -5,7 +5,7 @@ local Alerts=require('lib.core.alerts');local Signal=require('lib.platform.signa
 local A={};A.__index=A
 local function same(a,b) if type(a)~=type(b) then return false end;if type(a)~='table' then return a==b end;for k,v in pairs(a) do if not same(v,b[k]) then return false end end;for k in pairs(b) do if a[k]==nil then return false end end;return true end
 function A.new(ctx)
- local self=setmetatable({ctx=ctx,features={lock=false,sync=false},page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
+ local self=setmetatable({ctx=ctx,features={lock=true,sync=false},page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
  for _,px in ipairs({22,26,32,40}) do self.fonts[px]=ctx.fonts:size(px) end
  self:sample();self.started_ms=self.ms;self.original_light=ctx.frontlight and ctx.frontlight:get();self.last_save=self.sec or 0;self.changed_at=self.ms
  local state,status=Store.load(ctx,self.sec);self.state=state or M.new();self.mode=status

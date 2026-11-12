@@ -1,15 +1,31 @@
-local clock_text='--:--'
+local view,now,fonts,digits,clock_text
 function on_load(ctx)
  local ok=pcall(function()
-  local now=ctx.clock:now()
-  if now.valid then clock_text=string.format('%02d:%02d',now.hour,now.minute) end
+  local F=require('lib.core.format');local G=require('lib.core.glance');digits=require('lib.ui.digits')
+  now=ctx.clock:now();clock_text=F.clock(now,true);fonts={small=ctx.fonts:size(22),medium=ctx.fonts:size(32),large=ctx.fonts:size(40)}
+  view=G.view(ctx.state,now);ctx.lock:set_interval(view.interval)
+  if view.full then ctx:invalidate('full') end
  end)
- if not ok then pcall(function() ctx.log:error('E-LOCK-LOAD') end) end
+ if not ok then view=nil;pcall(function() ctx.log:error('E-LOCK-LOAD') end) end
 end
 function on_draw(ctx,g)
  local ok=pcall(function()
-  g:clear(0);g:text(240,260,'Timer Deck',{font=ctx.fonts.large,align='center'})
-  g:text(240,330,clock_text,{font=ctx.fonts.large,align='center',tabular=true})
+  local ink,paper=15,0
+  if view and view.blink then ink,paper=paper,ink end
+  g:clear(paper)
+  g:text(20,25,clock_text or '--:--',{font=fonts and fonts.small or ctx.fonts.small,color=ink})
+  local battery=ctx.device:battery();g:text(460,25,battery.percent..'%',{font=fonts and fonts.small or ctx.fonts.small,color=ink,align='right'})
+  g:text(240,135,view and view.title or 'Timer Deck',{font=fonts and fonts.large or ctx.fonts.large,color=ink,align='center'})
+  if not view then return end
+  if view.digits then
+   local height=160;while digits.width(view.digits,height)>440 do height=height-8 end
+   digits.draw(g,view.digits,(480-digits.width(view.digits,height))//2,235,height,ink)
+   if view.days~='' then g:text(240,195,view.days,{font=fonts.medium,color=ink,align='center'}) end
+  end
+  if view.label then g:text(240,420,view.label,{font=fonts.medium,color=ink,align='center'}) end
+  if view.caption then g:text(240,475,view.caption,{font=fonts.small,color=ink,align='center'}) end
+  if view.more then g:text(240,525,view.more,{font=fonts.small,color=ink,align='center'}) end
+  for n,line in ipairs(view.lines) do g:text(20,565+(n-1)*48,line,{font=fonts.small,color=ink}) end
  end)
  if not ok then pcall(function() ctx.log:error('E-LOCK-DRAW');g:clear(0);g:text(20,260,'Timer Deck',{font=ctx.fonts.large}) end) end
 end

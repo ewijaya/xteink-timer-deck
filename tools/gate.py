@@ -3,7 +3,7 @@ import json, subprocess, sys, time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def main():
- report={'evidence':'HOST MOCK','device_tests_run':False,'steps':[],'milestone':'M4','status':'Failed'}
+ report={'evidence':'HOST MOCK','device_tests_run':False,'steps':[],'milestone':'M5','status':'Failed'}
  (ROOT/'build').mkdir(exist_ok=True)
  (ROOT/'build/scripts.txt').write_text(''.join(str(p.relative_to(ROOT/'app'))+'\n' for p in sorted((ROOT/'app').rglob('*.lua'))))
  steps=[('toolchain',[sys.executable,'tools/setup_lua55.py']),('lint',[sys.executable,'tools/lint.py']),('icons',[sys.executable,'tools/icons.py','--check'])]
