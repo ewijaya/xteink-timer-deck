@@ -4,7 +4,10 @@ local c=R.new();local a=App.new(c)
 local function emit(name)
  for _,dark in ipairs({false,true}) do
   c.dark=dark;local g=R.canvas(c);a:draw(c,g);assert(g.command_count<=768)
-  print(assert(J:encode({name='HOST-MOCK-'..name..(dark and '-dark' or '-light'),dark=dark,commands=g.commands})))
+  for n,h in ipairs(a.hits) do assert(h.x>=0 and h.y>=0 and h.x+h.w<=480 and h.y+h.h<=800 and h.w>=56 and h.h>=56)
+   for k=1,n-1 do local b=a.hits[k];assert(h.x>=b.x+b.w or b.x>=h.x+h.w or h.y>=b.y+b.h or b.y>=h.y+h.h,'overlap '..name) end
+  end
+  print(assert(J:encode({name='HOST-MOCK-'..name..(dark and '-dark' or '-light'),dark=dark,command_count=g.command_count,text_bytes=g.bytes,commands=g.commands})))
  end
 end
 emit('empty')
@@ -33,3 +36,9 @@ local run=a.state.ch.run;a:command('CH_STOP',nil,{gen=run.gen,step=run.snap.step
 a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:command('CREATE_START',nil,{dur=1000,name='Tea',icon=1});a.state.items[1].anc=a.sec+90;a.page={kind='detail',id=1}
 for style=0,3 do a.state.set.style=style;emit('style-'..style..'-hot');a.state.items[1].st=2;a.state.items[1].val=90;a.state.items[1].anc=0;emit('style-'..style..'-paused');a.state.items[1].st=1;a.state.items[1].anc=a.sec+90 end
 a.page={kind='settings'};a:action({action='setting',arg='style'});emit('style-picker');a:action({action='back'});a:action({action='sync'});emit('sync')
+a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:action({action='new_watch'});emit('watch-form');a:action({action='save_form'});a.page={kind='detail',id=1};a:command('PRIMARY',{id=1,gen=0});emit('watch-running');a:action({action='actions'});emit('item-actions')
+a.page={kind='message',text='Could not save. Try again.'};emit('message');a.page={kind='confirm',text='Discard changes?'};emit('confirmation')
+a.state=M.new(a.sec);for n=1,3 do a.state=M.command(a.state,{action='CREATE_START',dur=1,name='Timer '..n},a.sec-100) end;M.reconcile(a.state,a.sec);a.queue=M.completions(a.state,true);a.queue_pos=2;a.page={kind='completion'};emit('away-queue')
+a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:action({action='chains'});a:action({action='ch_new'});a:action({action='ch_template',arg='Tea'});a:action({action='ch_add'});emit('chain-add');a:action({action='ch_from'});emit('chain-from');a.page={kind='chain_busy'};emit('chain-busy')
+
+local fatal_canvas=R.canvas(c);App.draw_fatal(c,fatal_canvas,'E-DRAW');print(assert(J:encode({name='HOST-MOCK-fatal-dark',dark=true,commands=fatal_canvas.commands})))

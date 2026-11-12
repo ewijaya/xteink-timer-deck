@@ -35,7 +35,7 @@ function G.view(s,now)
     if round>r.snap.rounds then if at-anc<=600 then done[#done+1]={label=r.snap.name,done=anc} end
     else running[#running+1]={label=r.snap.steps[idx].name,left=anc-at,anc=anc,chain=r.snap.name..' '..idx..'/'..#r.snap.steps};local left=anc-at;chain_interval=left<=150 and 30 or left<=3600 and 60 or left<=21600 and 300 or 900 end
    elseif r.st==2 then paused[#paused+1]={label=r.snap.name,left=r.anc,type=0};chain_interval=900
-   elseif r.st==3 and r.att<r.cnt and at>=r.ev and at-r.ev<=600 then done[#done+1]={label=r.snap.name,done=r.ev} end
+   elseif r.st==3 and r.sil~=1 and at>=r.ev and at-r.ev<=600 then done[#done+1]={label=r.snap.name,done=r.ev} end
   end
  end)
  if not ok then v.title='Open Timer Deck';return v end

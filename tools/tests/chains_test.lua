@@ -31,3 +31,17 @@ act('chains');act('ch_new');act('ch_template','Tea');act('ch_save');act('ch_star
 act('ch_done',{gen=a.state.ch.run.gen,step=a.state.ch.run.snap.steps[1].id,round=1})
 a:command('CREATE_START',nil,{dur=240,name='Tea',icon=1});local original=assert(J:encode(a.state.items))
 act('ch_new');act('ch_from_new');act('ch_select',1);act('ch_add_selected');assert(a.page.draft.steps[1].sec==240 and J:encode(a.state.items)==original);act('ch_add');act('ch_new_step');act('ch_time');act('time_done');act('ch_step_save');act('ch_save');assert(#a.state.ch.saved==2);print('HOST MOCK Passed TH03 / chain UI walk')
+-- Maximal encoded field widths, quote escaping, ids and snapshot depth.
+s=M.new(1000)
+for _=1,10 do s=M.command(s,{action='CREATE_START',dur=C.MAX_SEC,name=string.rep('"',16),icon=30,cnt=5},1000) end
+s.next_id=C.MAX_INT;s.rev=C.MAX_INT;s.trusted=C.MAX_INT;s.sel=C.MAX_INT-99
+for idx,i in ipairs(s.items) do i.id=C.MAX_INT-100+idx;i.gen=C.MAX_INT;i.anc=C.MAX_INT end
+for k=1,5 do
+ local d=H.template('Tea',3);d.id=C.MAX_INT-5+k;d.rev=C.MAX_INT;d.next_step=C.MAX_INT;d.name=string.rep('"',16);d.rounds=9;d.steps={}
+ for n=1,10 do d.steps[n]={id=C.MAX_INT-11+n,name=string.rep('"',16),sec=959999,icon=30,pat=3} end;s.ch.saved[k]=d
+end
+s.ch.last=C.MAX_INT;s.ch.run={st=1,id=s.ch.saved[5].id,gen=C.MAX_INT,snap=M.copy(s.ch.saved[5]),idx=10,round=9,anc=C.MAX_INT,ev=C.MAX_INT-100000,skipped=89,away=89,pat=3,cnt=5,att=0,cue=1,sil=0}
+for n=1,4 do s.rc[n]={dig=-2147483647-1,len=16384,n=15} end
+assert(M.valid(s));local bytes=#assert(J:encode(s));assert(bytes<=12288,bytes)
+local function depth(t,n) local max=n;for _,v in pairs(t) do if type(v)=='table' then max=math.max(max,depth(v,n+1)) end end;return max end
+assert(depth(s,0)<=5);local store=R.new({state=s});assert(store:save_state());assert(J:encode(s)==J:encode(store.persisted));print('HOST MOCK TS01 maximal widths '..bytes..' bytes, depth '..depth(s,0))

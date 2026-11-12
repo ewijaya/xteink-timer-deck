@@ -48,5 +48,10 @@ def main():
   frame=json.loads(line);im=render(frame);im.save(OUT/(frame['name']+'.png'));images.append(im)
  sheet=Image.new('RGB',(240*4,400*math.ceil(len(images)/4)),'#ddd')
  for i,im in enumerate(images):sheet.paste(im.resize((240,400)),((i%4)*240,(i//4)*400))
- sheet.save(OUT/'HOST-MOCK-contact-sheet.png');print(f'HOST MOCK: {len(images)} previews')
+ sheet.save(OUT/'HOST-MOCK-contact-sheet.png')
+ for start in range(0,len(images),12):
+  group=images[start:start+12];page=Image.new('RGB',(960,400*math.ceil(len(group)/4)),'#ddd')
+  for i,im in enumerate(group):page.paste(im.resize((240,400)),((i%4)*240,(i//4)*400))
+  page.save(OUT/f'HOST-MOCK-contact-{start//12+1:02d}.png')
+ print(f'HOST MOCK: {len(images)} previews')
 if __name__=='__main__':main()

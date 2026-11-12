@@ -11,6 +11,7 @@ end
 local function definition(d)
  assert(int(d.id,1,C.MAX_INT) and int(d.rev,1,C.MAX_INT) and int(d.next_step,1,C.MAX_INT))
  assert(F.name(d.name)==d.name and int(d.icon,0,30) and #d.steps>=2 and #d.steps<=10 and H.total(d))
+ local entries=0;for k in pairs(d.steps) do assert(int(k,1,#d.steps));entries=entries+1 end;assert(entries==#d.steps)
  local seen={};for _,v in ipairs(d.steps) do assert(int(v.id,1,d.next_step-1) and not seen[v.id] and F.name(v.name)==v.name and int(v.icon,0,30) and int(v.pat,0,3));seen[v.id]=true end
 end
 function H.valid(ch)
@@ -20,7 +21,7 @@ function H.valid(ch)
  if r.st==0 then assert(r.gen==nil or int(r.gen,0,C.MAX_INT));return end
  definition(r.snap);assert(r.id==r.snap.id and int(r.gen,1,C.MAX_INT) and int(r.idx,1,#r.snap.steps) and int(r.round,1,r.snap.rounds))
  assert(int(r.anc,0,C.MAX_INT) and int(r.ev,0,C.MAX_INT) and int(r.skipped,0,90) and int(r.away,0,90) and int(r.pat,0,3) and int(r.cnt,1,5) and int(r.att,0,r.cnt) and int(r.cue,0,1))
- assert(r.st~=1 or r.anc>0);assert(r.st~=2 or r.anc>=1 and r.anc<=r.snap.steps[r.idx].sec);assert(r.st<3 or r.anc==0)
+ assert(r.sil==nil or r.sil==0 or r.sil==1);assert(r.st~=1 or r.anc>0);assert(r.st~=2 or r.anc>=1 and r.anc<=r.snap.steps[r.idx].sec);assert(r.st<3 or r.anc==0)
 end
 function H.value(r,now) if r.st==1 then return now and math.max(0,r.anc-now) or nil elseif r.st==2 then return r.anc else return 0 end end
 function H.remaining(r,now)
@@ -78,13 +79,13 @@ function H.command(s,c,now,api)
   if r.st==1 or r.st==2 then return 'ACTIVE' end
   if (r.gen or 0)==C.MAX_INT then return 'OVERFLOW' end
   local finish,why=api.add_time(now,H.total(d));if not finish then return why end
-  s.ch.run={st=1,id=d.id,gen=(r.gen or 0)+1,snap=api.copy(d),idx=1,round=1,anc=assert(api.add_time(now,d.steps[1].sec)),ev=now,skipped=0,away=0,pat=s.set.pat,cnt=s.set.cnt,att=0,cue=0};return 'OK'
+  s.ch.run={st=1,id=d.id,gen=(r.gen or 0)+1,snap=api.copy(d),idx=1,round=1,anc=assert(api.add_time(now,d.steps[1].sec)),ev=now,skipped=0,away=0,pat=s.set.pat,cnt=s.set.cnt,att=0,cue=0,sil=0};return 'OK'
  end
  if r.st==0 or c.gen~=r.gen or c.step~=r.snap.steps[r.idx].id or c.round~=r.round then return 'STALE' end
  if action=='CH_DONE' then if r.st<3 then return 'INVALID' end;s.ch.run={st=0,gen=r.gen};return 'OK' end
- if action=='CH_ATTEMPT' then if r.st~=3 or not now or now<r.ev or now-r.ev>60 or r.att>=r.cnt then return 'INVALID' end;r.att=r.att+1;return 'OK' end
+ if action=='CH_ATTEMPT' then if r.st~=3 or r.sil==1 or not now or now<r.ev or now-r.ev>60 or r.att>=r.cnt then return 'INVALID' end;r.att=r.att+1;return 'OK' end
  if action=='CH_CUE' then if r.st~=1 or r.cue~=1 then return 'INVALID' end;r.cue=0;return 'OK' end
- if action=='CH_SILENCE' then r.cue=0;r.att=r.cnt;return 'OK' end
+ if action=='CH_SILENCE' then r.cue=0;r.att=r.cnt;r.sil=1;return 'OK' end
  if r.st~=1 and r.st~=2 then return 'INVALID' end
  if r.gen==C.MAX_INT then return 'OVERFLOW' end
  local paused=r.st==2

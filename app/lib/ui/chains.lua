@@ -18,7 +18,7 @@ function U.action(a,h)
  local action,arg=h.action,h.arg;local p=a.page;local r=a.state.ch.run
  if action=='chains' then a:push({kind='chains'})
  elseif action=='chain_run' then if r.st~=0 then a:push({kind=r.st>=3 and 'chain_result' or 'chain_run',token=token(r)}) end
- elseif action=='ch_arm' then a.chain_delete=arg
+ elseif action=='ch_arm' then a.chain_delete=arg;if a.settle then a.settle:cancel() end;a.settle=a.ctx:after(5000,function() a:callback(function() a.settle=nil;a.chain_delete=nil;a:invalidate() end) end)
  elseif action=='ch_keep' then a.chain_delete=nil
  elseif action=='ch_delete_inline' then local def=H.find(a.state,arg);if def and a:command('CH_DELETE',nil,{id=def.id,rev=def.rev}) then a.chain_delete=nil end
  elseif action=='ch_new' then if #a.state.ch.saved>=5 then a:message(S.chain_full) else a:push({kind='chain_new'}) end
@@ -72,7 +72,7 @@ function U.draw(a,g)
  W.top(a,g,kind=='chains' and S.chains or kind=='chain_run' and r.snap.name or kind=='chain_result' and (r.st==4 and S.chain_stopped or S.chain_complete) or S.chains,true,kind=='chain_run' and 'ch_more' or nil,'...')
  if kind=='chains' then
   if r.st~=0 then rows[#rows+1]={label=r.snap.name,value=S.active_chain,action='chain_run'} end
-  for _,def in ipairs(a.state.ch.saved) do rows[#rows+1]={label=def.name~='' and def.name or S.new_chain,value=#def.steps..' '..S.steps..' · '..F.duration(H.total(def)),action='ch_overview',arg=def.id,armed=a.chain_delete==def.id} end
+  for _,def in ipairs(a.state.ch.saved) do rows[#rows+1]={label=def.name~='' and def.name or S.new_chain,value=#def.steps..' '..S.steps..' · '..F.duration(H.total(def)),action='ch_overview',arg=def.id,play=true,armed=a.chain_delete==def.id} end
   bottom={S.new_chain,'ch_new'}
  elseif kind=='chain_new' then
   rows={{label=S.empty_chain,action='ch_template',arg=''},{label=S.from_deck,action='ch_from_new'}}
@@ -103,7 +103,7 @@ function U.draw(a,g)
   W.text(a,g,240,180,S.steps..' '..r.idx..' / '..#r.snap.steps,26,'center');W.text(a,g,240,218,W.fit(a,step.name,330,26),26,'center')
   local height=#time>5 and 64 or 96;Digits.draw(g,time,(480-Digits.width(time,height))//2,270,height,a.ink)
   W.text(a,g,240,375,P.seconds(a.state.set.secs,true,{type=0},value or 0) and 'SEC' or 'MIN',22,'center');W.text(a,g,240,410,S.rounds..' '..r.round..' / '..r.snap.rounds,22,'center');W.text(a,g,240,440,days,22,'center')
-  local next_step=r.snap.steps[r.idx%#r.snap.steps+1];W.text(a,g,240,540,W.fit(a,'Next: '..next_step.name..' '..F.duration(next_step.sec),440,26),26,'center')
+  local next_step=r.snap.steps[r.idx%#r.snap.steps+1];W.text(a,g,240,540,W.fit(a,r.idx==#r.snap.steps and r.round==r.snap.rounds and S.last_step or 'Next: '..next_step.name..' '..F.duration(next_step.sec),440,26),26,'center')
   if r.away>0 then W.text(a,g,240,590,r.away..' steps elapsed while away',22,'center') elseif a.banner then W.text(a,g,240,590,W.fit(a,a.banner,440,22),22,'center') end
   W.button(a,g,16,676,160,112,r.st==1 and S.pause or S.resume,'ch_primary',t,nil,nil,true)
   W.button(a,g,184,676,180,112,S.restart,'ch_restart',t,nil,nil,false,22);W.button(a,g,372,676,92,112,'Skip','ch_skip',t,nil,nil,false,22);return

@@ -47,3 +47,15 @@ a,c=fresh(1,0);assert(c.waves[1]=='full');advance(a,c,1150);assert(a.flash);adva
 -- The save is observable before the first light set, including injected failure.
 a,c=fresh(2,0);c.save_failure='io_error';advance(a,c,1150);assert(a.unsaved and not a.signal);for _,v in ipairs(c.light_calls) do assert(v[1]~='set') end
 c.save_failure=nil;advance(a,c,4000);assert(not a.unsaved and a.state.items[1].att<=2)
+for pat=0,3 do
+ local aa,cc=fresh(1,pat);local setter=cc.frontlight.set
+ cc.frontlight.set=function(self,v) assert(cc.persisted.items[1].att==1);return setter(self,v) end
+ advance(aa,cc,3000);local events={};local first
+ for _,event in ipairs(cc.light_calls) do if event[1]=='set' or first then first=first or event.at;events[#events+1]=event end end
+ local elapsed=0;assert(first>=1000)
+ for n,duration in ipairs(Alerts.patterns[pat+1]) do assert(events[n].at-first==elapsed and events[n][1]==(n%2==1 and 'set' or 'reset'));elapsed=elapsed+duration end
+ assert(events[#events][1]=='reset' and events[#events].at-first==elapsed)
+end
+local aa,cc=fresh(5,0);advance(aa,cc,12000);local last
+for _,event in ipairs(cc.light_calls) do if event[1]=='set' then if last then assert(event.at-last==2000) end;last=event.at end end
+print('HOST MOCK exact pattern timestamps and save-before-light assertions passed')

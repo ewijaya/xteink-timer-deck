@@ -15,7 +15,7 @@ function on_draw(ctx,g)
   if app and not fatal then app:draw(ctx,g)
   elseif App then App.draw_fatal(ctx,g,fatal)
   else
-   g:clear(0);g:text(240,260,'Something went wrong',{font=ctx.fonts.large,align='center'})
+   g:clear(0);g:rect(2,2,116,76,{line_width=2});g:text(60,28,'Back',{font=ctx.fonts.medium,align='center'});g:text(240,310,fatal or 'E-LOAD',{font=ctx.fonts.medium,align='center'});g:text(240,260,'Something went wrong',{font=ctx.fonts.large,align='center'})
    g:rect(16,500,448,96,{line_width=2});g:text(240,535,'Try again',{font=ctx.fonts.large,align='center'})
   end
  end)
@@ -27,6 +27,7 @@ function on_input(ctx,ev)
  local ok,handled=guard(ctx,'E-INPUT',function()
   if app and app.fatal then fatal=app.fatal end
   if fatal then
+   if ev.type=='pointer' and ev.phase=='up' and ev.x<120 and ev.y<80 then ctx:quit();return true end
    if ev.type=='key' and ev.phase=='up' and ev.key=='back' then return false end
    if (ev.type=='pointer' and ev.phase=='up' and ev.y>=500 and ev.y<596) or (ev.type=='key' and ev.phase=='up' and ev.key=='up') then on_load(ctx);return true end
    return false

@@ -1,0 +1,6 @@
+{
+  "evidence": "HOST MOCK",
+  "description": "Fixed validation_test.lua session fixtures; regression allowance is twice baseline plus 1000 instructions, not a device-time conversion.",
+  "main": {"top": 0, "on_load": 14600, "on_draw": 13000, "on_input": 31700, "timer": 1600, "on_leave": 500},
+  "lock": {"top": 0, "on_load": 1300, "on_draw": 4600}
+}

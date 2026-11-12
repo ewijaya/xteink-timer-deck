@@ -24,7 +24,9 @@ function A:push(page)
  self.stack[#self.stack+1]=self.page;self.page=page;self.focus=nil;self.peek=nil;self.changed_at=self.ms;self:invalidate(self.partials>=12)
 end
 function A:pop()
+ local old=self.page.kind
  self.page=table.remove(self.stack) or {kind='deck'};self.focus=nil;self.peek=nil;self.changed_at=self.ms;self:invalidate(self.partials>=12)
+ if old~='deck' and old~='detail' then self.ctx.gc:collect() end
 end
 function A:message(text)
  self:push({kind='message',text=text})
@@ -103,7 +105,7 @@ function A:plan()
  local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,extra,self.page.id)
  self.coverage_warning=nil;self.chain_entry=nil
  local run=self.state.ch.run
- if run.st~=0 then local step=run.snap.steps[run.idx];self.chain_entry={chain=true,id=run.id,gen=run.gen,num=0,name=run.snap.name,icon=run.snap.icon,type=0,st=run.st==4 and 3 or run.st,dur=step.sec,val=H.value(run,self.sec),anc=run.anc,lim=0} end
+ if run.st==1 or run.st==2 then local step=run.snap.steps[run.idx];self.chain_entry={chain=true,id=run.id,gen=run.gen,num=0,name=(run.snap.name~='' and run.snap.name or S.chains)..' '..run.idx..'/'..#run.snap.steps,icon=step.icon,type=0,st=run.st==4 and 3 or run.st,dur=step.sec,val=H.value(run,self.sec),anc=run.anc,lim=0} end
  if run.st==1 and not (self.lock_default and self.ctx.device.lock_timer) and not (self.state.set.awake==1 and self.ctx.device.keep_awake and self.sec and H.remaining(run,self.sec)<=C.AWAKE_HORIZON_SEC) then self.coverage_warning=S.open_strip end
  for _,i in ipairs(self.state.items) do if i.type==0 and i.st==1 and self:coverage(i)==S.coverage[1] then self.coverage_warning=S.open_strip end end
  if self.ctx.device.keep_awake then
@@ -189,7 +191,7 @@ function A:action(h)
   else self:pick_field(p.key,p.key=='cnt' and arg+1 or arg);self:pop() end
  elseif action=='coverage' then self:push({kind='coverage'})
  elseif action=='enable_awake' then self:command('SETTINGS',nil,{values={awake=1}});self:pop()
- elseif action=='lockscreen' then if self.ctx.lockscreen then if self.lock_default then self.ctx.lockscreen:clear_default() else self.ctx.lockscreen:set_default() end;self:sample() end
+ elseif action=='lockscreen' then if self.ctx.lockscreen then if self.lock_default then self.ctx.lockscreen:clear_default() else self.ctx.lockscreen:set_default() end;self.lock_default=self.ctx.lockscreen:is_default() end
  elseif action=='use' then if self:command('SETTINGS',nil,{values={[p.key]=p.value}}) then self.preview_setting=nil;self:pop();self:invalidate(true) end
  elseif action=='menu' or action=='settings' then self:push({kind=action})
  elseif action=='setting' then
@@ -198,7 +200,7 @@ function A:action(h)
   else self:push({kind='picker',title=S[arg] or S.settings,key=arg,value=self.state.set[arg]-(arg=='cnt' and 1 or 0),options=options[arg],setting=true,preview=arg=='app' or arg=='style'}) end
  elseif action=='help' then self:help()
  elseif action=='about_tap' then self.taps=(self.taps or 0)+1;if self.taps>=7 then self.taps=0;self:diagnose();self:push({kind='info'}) end
- elseif action=='page' then p.offset=((p.offset or 0)+arg)%math.max(1,self.page_count or 1);self.focus=nil
+ elseif action=='page' then local count=math.max(1,self.page_count or 1);p.offset=p.kind=='deck' and math.max(0,math.min(count-1,(p.offset or 0)+arg)) or ((p.offset or 0)+arg)%count;self.focus=nil
  elseif action=='next_item' then local _,n=M.find(self.state,p.id);if n and #self.state.items>0 then p.id=self.state.items[(n-1+arg)%#self.state.items+1].id;self.peek=nil end
  elseif action=='peek' then local i=M.find(self.state,p.id);if i and self.sec then local d,t=F.detail(M.value(i,self.sec),i.type==0,false);local value=M.value(i,self.sec);if value<86400 then t=string.format('%d:%02d:%02d',value//3600,value//60%60,value%60) end;self.peek={days=d,time=t,at=(F.clock(self.now):gsub('(%d+:%d%d)','%1:'..string.format('%02d',self.now.second or 0)))} end
  elseif action=='browse' then if #self.queue>0 then self.queue_pos=((self.queue_pos-1+arg)%#self.queue)+1 end
@@ -221,17 +223,18 @@ function A:action(h)
  return true
 end
 function A:diagnose()
- self.diagnostics={'API '..self.ctx.api.major..'.'..self.ctx.api.minor,'Model '..tostring(self.ctx.device.model),'Firmware '..tostring(self.ctx.device.firmware),'Heap '..self.ctx.gc:count()..' bytes','State '..#assert(self.ctx.json:encode(self.state))..' bytes','Partial frames '..self.partials,'Lock timer '..tostring(self.ctx.device.lock_timer),'Keep awake '..tostring(self.ctx.device.keep_awake~=nil),'Last error '..(self.fatal or 'none')}
+ self.diagnostics={'API '..self.ctx.api.major..'.'..self.ctx.api.minor,'Model '..tostring(self.ctx.device.model),'Firmware '..tostring(self.ctx.device.firmware),'Heap '..self.ctx.gc:count()..' bytes','State '..#assert(self.ctx.json:encode(self.state))..' bytes','Pending timers '..((self.pulse and 1 or 0)+(self.signal_timer and 1 or 0)+(self.backup_timer and 1 or 0)+(self.settle and 1 or 0)),'Draw us '..self.ctx.perf:info().draw_us,'Longest input ms '..(self.longest_input_ms or 0),'Front light '..tostring(self.ctx.frontlight~=nil),'Partial frames '..self.partials,'Lock timer '..tostring(self.ctx.device.lock_timer),'Keep awake '..tostring(self.ctx.device.keep_awake~=nil),'Last error '..(self.fatal or 'none')}
  for k,v in pairs(self.ctx.capabilities) do self.diagnostics[#self.diagnostics+1]=k..': '..tostring(v) end
 end
 function A:input(ctx,ev)
+ local began=ctx.clock:millis()
  self:sample()
  if self.swallow then if ev.phase=='up' or ev.phase=='cancel' then self.swallow=nil end;return true end
  if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';Signal.stop(self);self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st~=0 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end
  self:event()
  if self.fatal then return false end
  local h=N.input(self,ev);if h=='consumed' then return true elseif h=='redraw' then self:invalidate();return true elseif not h then return false end
- local handled=self:action(h);self:plan();self:invalidate();return handled
+ local handled=self:action(h);self:plan();self:invalidate();self.longest_input_ms=math.max(self.longest_input_ms or 0,(ctx.clock:millis()-began)&0x7fffffff);return handled
 end
 function A:draw(ctx,g)
  local appearance=self.preview_setting and self.preview_setting.key=='app' and self.preview_setting.value or self.state.set.app
@@ -260,14 +263,14 @@ function A:draw(ctx,g)
  end
  if self.focus and self.hits[self.focus] and kind~='deck' then local h=self.hits[self.focus];g:rect(h.x+2,h.y+2,h.w-4,h.h-4,{color=self.ink,line_width=4}) end
 end
-function A:pause(ctx) self.paused=true;Signal.stop(self) end
+function A:pause(ctx) self.paused=true;if self.pulse then self.pulse:cancel();self.pulse=nil end;Signal.stop(self) end
 function A:resume(ctx) self.paused=false;self:sample();self:event();self:invalidate() end
 function A:leave(ctx)
  self.alive=false;if self.backup_timer then self.backup_timer:cancel();self.backup_timer=nil end;if self.pulse then self.pulse:cancel() end;if self.settle then self.settle:cancel() end
- self:sample();if self.mode~='blocked' and self.mode~='recovery' then M.reconcile(self.state,self.sec);ctx.state=self.state;self:flush_backup() end;self:pause(ctx)
+ self:sample();if self.mode~='blocked' and self.mode~='recovery' then if M.reconcile(self.state,self.sec) then self.backup_pending=true end;ctx.state=self.state;self:flush_backup() end;self:pause(ctx)
 end
 function A.draw_fatal(ctx,g,code)
- g:clear(0);g:text(240,260,S.fatal,{font=ctx.fonts.large,align='center'});g:text(240,310,code or 'E-UNKNOWN',{font=ctx.fonts.medium,align='center'})
+ g:clear(0);g:rect(2,2,116,76,{line_width=2});g:text(60,28,S.back,{font=ctx.fonts.medium,align='center'});g:text(240,260,S.fatal,{font=ctx.fonts.large,align='center'});g:text(240,310,code or 'E-UNKNOWN',{font=ctx.fonts.medium,align='center'})
  g:rect(16,500,448,96,{line_width=2});g:text(240,535,S.retry,{font=ctx.fonts.large,align='center'})
 end
 return A

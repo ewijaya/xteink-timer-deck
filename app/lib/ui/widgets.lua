@@ -28,10 +28,11 @@ function W.rows(a,g,rows,per)
   local row=rows[page*per+n];if not row then break end
   local y=80+(n-1)*96
   if row.armed then W.button(a,g,0,y,240,96,require('lib.ui.strings').delete,'ch_delete_inline',row.arg);W.button(a,g,240,y,240,96,require('lib.ui.strings').keep,'ch_keep')
-  else W.text(a,g,20,y+16,W.fit(a,row.label,440,row.value and 26 or 32),row.value and 26 or 32)
-  if row.value then W.text(a,g,20,y+53,W.fit(a,row.value,440,22),22) end
+  else W.text(a,g,20,y+16,W.fit(a,row.label,row.play and 320 or 440,row.value and 26 or 32),row.value and 26 or 32)
+  if row.value then W.text(a,g,20,y+53,W.fit(a,row.value,row.play and 320 or 440,22),22) end
   g:line(16,y+95,464,y+95,{color=a.ink})
-  if row.action then Nav.hit(a,0,y,480,96,row.action,row.arg,row.id,row.gen) end end
+  if row.action then Nav.hit(a,0,y,row.play and 360 or 480,96,row.action,row.arg,row.id,row.gen) end
+  if row.play then W.button(a,g,360,y,120,96,require('lib.ui.strings').start,'ch_start',row.arg) end end
  end
  if count>1 then W.button(a,g,0,712,240,88,'<','page',-1);W.button(a,g,240,712,240,88,(page+1)..' / '..count..' >','page',1) end
  a.page_count=count

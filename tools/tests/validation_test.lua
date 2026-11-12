@@ -1,0 +1,56 @@
+package.path='tools/shim/?.lua;app/?.lua;'..package.path
+local R=require('runtime');local J=require('json');collectgarbage('collect');local harness=collectgarbage('count')*1024
+local M=require('lib.core.model');local App=require('lib.app')
+local c=R.new();local a=App.new(c);local peak,commands=0,0
+local function clean_logs() c.waves={};c.awake_calls={};c.light_calls={};c.deferred={};c.saved=0;c.save_attempts=0 end
+local function draw()
+ collectgarbage('collect');local before=assert(J:encode(a.state));local g=R.canvas(c);a:draw(c,g);assert(g.command_count<=768);commands=math.max(commands,g.command_count)
+ assert(before==J:encode(a.state));peak=math.max(peak,collectgarbage('count')*1024)
+ for n,h in ipairs(a.hits) do assert(h.x>=0 and h.y>=0 and h.x+h.w<=480 and h.y+h.h<=800 and h.w>=56 and h.h>=56)
+  for k=1,n-1 do local b=a.hits[k];assert(h.x>=b.x+b.w or b.x>=h.x+h.w or h.y>=b.y+b.h or b.y>=h.y+h.h,'overlap '..a.page.kind) end
+ end
+end
+for _,kind in ipairs({'deck','menu','settings','help','info','recovery','blocked','coverage','sync','chains','chain_new'}) do
+ if kind=='help' then a:help() elseif kind=='info' then a:diagnose() else a.page={kind=kind} end;draw()
+end
+a.page={kind='deck'};a.stack={};a:action({action='new_timer'});draw();a:action({action='more'});draw();a:action({action='icons'});draw();a:action({action='pick',arg=1});a:action({action='save_form'});a.page={kind='detail',id=1};draw()
+a.page={kind='deck'};for n=2,10 do a:command('CREATE',nil,{dur=100,name='Timer '..n,icon=n}) end
+for n=10,0,-1 do draw();if n>0 then a:command('DELETE',{id=n,gen=0}) end end
+a.page={kind='deck'};a.stack={};a:action({action='chains'});a:action({action='ch_new'});a:action({action='ch_template',arg='Tea'});draw();a:action({action='ch_step',arg=1});draw();a:action({action='ch_step_save'});a:action({action='ch_save'});draw();a:action({action='ch_start'});draw();a:action({action='ch_more'});draw();a:action({action='ch_steps'});draw()
+a.page={kind='sync'};c.files:write('timerdeck-import.txt','timer | Tea | 10');a:action({action='import'});draw();a:command('ERASE')
+for style=0,3 do a:command('SETTINGS',nil,{values={style=style}});a.page={kind='settings'};a:action({action='setting',arg='style'});draw();a:action({action='back'}) end
+-- Warm lazy modules and cache, then measure retained growth without host evidence logs.
+a.page={kind='deck'};a.stack={};clean_logs();collectgarbage('collect');local start=collectgarbage('count')*1024
+for _=1,100 do a:command('CREATE',nil,{dur=10});local i=a.state.items[1];a:command('DELETE',{id=i.id,gen=i.gen});a:push({kind='settings'});a:pop();c:advance(2000);clean_logs() end
+collectgarbage('collect');local growth=collectgarbage('count')*1024-start;assert(growth<=4096,growth)
+assert(peak-harness<=524288,peak-harness)
+local report={evidence='HOST MOCK',device_tests_run=false,heap_peak_bytes=math.floor(peak-harness),host_total_peak_bytes=math.floor(peak),harness_baseline_bytes=math.floor(harness),retained_growth_bytes=math.floor(growth),max_draw_commands=commands,device_callback_times='Not run'}
+print('HOST MOCK Passed TM01 peak '..math.floor(peak-harness)..' app-attributable bytes;  retained growth '..math.floor(growth)..' bytes')
+-- Fresh entry VM, real overlays and a recoverable injected draw failure.
+local files={};for path in io.lines('build/scripts.txt') do local f=assert(io.open('app/'..path));files[path]=f:read('a');f:close() end
+local state=M.new(c.now_value.epoch_sec);state=M.command(state,{action='CREATE_START',dur=100},c.now_value.epoch_sec)
+local session=R.session(files,state);session:draw();session:advance(500);session:event('on_input',{type='pointer',phase='up',gesture='tap',x=150,y=100});session:draw()
+local g=R.canvas(session);g.circle=function() error('injected draw failure') end;session:event('on_draw',g);assert(session.alive and session.logs[#session.logs][2]=='E-DRAW');local logs=#session.logs;session:draw();assert(#session.logs==logs)
+session:event('on_input',{type='key',key='up',phase='up'});session:draw();assert(session.alive and session.state.items[1].st==1);print('HOST MOCK Passed TU15')
+session:advance(61000);session:leave()
+local lock=R.session(files,state,'lock');lock:draw();report.lock_instructions=lock.budgets
+assert((lock.budgets.on_load or 0)+(lock.budgets.on_draw or 0)<100000)
+report.instructions=session.budgets
+local source=assert(io.open('tools/tests/instruction-baseline.json'));local baseline=assert(J:decode(source:read('a')));source:close()
+for name,count in pairs(lock.budgets) do assert(count<=baseline.lock[name]*2+1000) end
+for name,count in pairs(session.budgets) do assert(count<=baseline.main[name]*2+1000,name..' instruction proxy exceeded');print('HOST MOCK instructions '..name..' '..count) end
+local f=assert(io.open('build/validation-results.json','w'));f:write(assert(J:encode(report)));f:close()
+-- Key-only access to creation and menu remains possible when the deck is nonempty.
+a.state=M.new(c.now_value.epoch_sec);a.ctx.state=a.state;a.page={kind='deck'};a.stack={};a.focus=nil;a:command('CREATE',nil,{dur=10});draw()
+local function key(name) c:advance(300);a:input(c,{type='key',key=name,phase='up'});draw() end
+key('down');assert(a.focus==1);key('down');assert(a.focus==2);key('up');assert(a.page.kind=='keypad')
+-- Optional capabilities must not be required by ordinary timers or fallback confirmation.
+local optional=R.new({keep_awake=false,lockscreen=false,capabilities={frontlight=false,dialog=false}});local fallback=App.new(optional);fallback:command('CREATE_START',nil,{dur=1});optional:advance(8000);assert(not fallback.fatal and fallback.state.items[1].att==3)
+fallback:action({action='erase'});assert(fallback.page.kind=='confirm');fallback:action({action='back'});assert(#fallback.state.items==1)
+print('HOST MOCK key-only deck access and absent-capability paths passed')
+-- A native name overlay that crosses a deadline preserves the interrupted form.
+local overlay_ctx=R.new();local overlay_app=App.new(overlay_ctx);overlay_app:command('CREATE_START',nil,{dur=1});overlay_app:open_form(overlay_app.state.items[1]);local draft=overlay_app.page
+assert(overlay_app:action({action='name'}));overlay_app:pause(overlay_ctx);overlay_ctx.paused=true;overlay_ctx:advance(2000);local completion=overlay_ctx.overlay.fn;overlay_ctx.overlay=nil;overlay_ctx.paused=false;overlay_app:resume(overlay_ctx);completion(overlay_ctx,'  My Tea  ')
+assert(overlay_app.state.items[1].name=='My Tea' and overlay_app.page.kind=='completion');local kept=false;for _,page in ipairs(overlay_app.stack) do if page==draft then kept=true end end;assert(kept)
+overlay_app:action({action='clear_all'});assert(overlay_app.page==draft);print('HOST MOCK TU09 / TU10 overlay interruption and draft restoration passed')
+local lock_ctx=R.new();local lock_app=App.new(lock_ctx);lock_app:action({action='lockscreen'});assert(lock_ctx.overlay and not lock_app.lock_default);lock_ctx.overlay=nil;lock_ctx.lock_default=true;lock_app:resume(lock_ctx);assert(lock_app.lock_default);lock_app:action({action='lockscreen'});assert(not lock_app.lock_default);print('HOST MOCK TU11 lock selection and resume recheck passed')

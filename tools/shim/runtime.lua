@@ -50,7 +50,7 @@ local function state_json(v)
 end
 function R.new(options)
   local o=options or {};local c={state=copy(o.state or {}),kind=o.kind or 'main',timers={},elapsed=0,millis_start=o.millis or 0,
-    now_value=copy(o.now or {valid=true,epoch_sec=1794452400,hour=12,minute=0,second=0,year=2026,month=11,day=11,weekday=3,hour12=false,date_order='ymd',date_sep='/',offset_minutes=540,revision=1}),
+    now_value=copy(o.now or {valid=true,epoch_sec=1794452400,hour=12,minute=0,second=0,year=2026,month=11,day=12,weekday=4,hour12=false,date_order='ymd',date_sep='/',offset_minutes=540,revision=1}),
     logs={},waves={},deferred={},light_calls={},awake_calls={},budgets={},saved=0,save_attempts=0,font_requests={},alive=true,
     screen={width=480,height=800,gray_levels=2},api=copy(o.api or {major=2,minor=18}),device={model=o.model or 'x4_pro',firmware=o.firmware or 'HOST MOCK',lock_timer=o.lock_timer~=false},
     capabilities=copy(o.capabilities or {pattern=false,image_transform=false,ttf=false,ui=false,reader=false,dialog=true,frontlight=true,image_decode=false,nn=true}),
@@ -99,6 +99,19 @@ function R.new(options)
       self.fraction=(self.fraction or 0)+step%1000;local sec=step//1000+self.fraction//1000;self.fraction=self.fraction%1000
       if self.now_value.epoch_sec then
         local n=self.now_value.epoch_sec;self.now_value.epoch_sec=sec<=2147483647-n and n+sec or nil
+      end
+      local wall=self.now_value
+      if wall.hour and wall.minute and wall.second then
+        local time=wall.hour*3600+wall.minute*60+wall.second+sec;local days=time//86400
+        wall.hour=time//3600%24;wall.minute=time//60%60;wall.second=time%60
+        if wall.day and wall.month and wall.year then
+          for _=1,days do
+            local leap=wall.year%4==0 and (wall.year%100~=0 or wall.year%400==0)
+            local lengths={31,leap and 29 or 28,31,30,31,30,31,31,30,31,30,31}
+            wall.day=wall.day+1;if wall.day>lengths[wall.month] then wall.day=1;wall.month=wall.month+1;if wall.month>12 then wall.month=1;wall.year=wall.year+1 end end
+          end
+          if wall.weekday then wall.weekday=(wall.weekday+days)%7 end
+        end
       end
       for _,t in ipairs(self.timers) do if not t.cancelled then t.left=math.max(0,t.left-step) end end
       ms=ms-step
@@ -167,7 +180,7 @@ function R.new(options)
     function c.dialog:toast(s) if not text(s,95) then return nil,'limit_exceeded' end;if c.kind=='lock' then return nil,'inactive' end;c.toast=s end
   end
   function c:quit() self.quitting=true end
-  if c.kind=='main' then
+  if c.kind=='main' and o.lockscreen~=false then
     c.lockscreen={}
     function c.lockscreen:is_default() return c.lock_default or false end
     function c.lockscreen:clear_default() c.lock_default=false end

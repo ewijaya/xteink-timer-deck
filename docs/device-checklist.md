@@ -1,6 +1,6 @@
 # Owner device checklist
 
-No device checks have run. Record date, firmware, actual outcome and photographs here. DV01 is queued for the foundation package. Later steps wait for their implementation milestone.
+No device checks have run. Record date, firmware, actual outcome and photographs here. Candidate 0.3.0 is ready for owner testing. DV01–DV15 are all queued; every result is **Not run**. Start with DV01. Host tests do not change these statuses.
 
 | ID | Step | Gate |
 | --- | --- | --- |
