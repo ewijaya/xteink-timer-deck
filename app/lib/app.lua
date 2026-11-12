@@ -1,12 +1,13 @@
 local M=require('lib.core.model');local C=require('lib.core.const');local F=require('lib.core.format');local P=require('lib.core.pulse')
 local S=require('lib.ui.strings');local Clock=require('lib.platform.clock');local Store=require('lib.platform.store');local N=require('lib.ui.nav');local W=require('lib.ui.widgets');local Theme=require('lib.ui.theme')
 local Deck=require('lib.ui.deck');local Detail=require('lib.ui.detail');local Keypad=require('lib.ui.keypad');local Completion=require('lib.ui.completion')
+local Alerts=require('lib.core.alerts');local Signal=require('lib.platform.signal')
 local A={};A.__index=A
 local function same(a,b) if type(a)~=type(b) then return false end;if type(a)~='table' then return a==b end;for k,v in pairs(a) do if not same(v,b[k]) then return false end end;for k in pairs(b) do if a[k]==nil then return false end end;return true end
 function A.new(ctx)
  local self=setmetatable({ctx=ctx,features={lock=false,sync=false},page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
  for _,px in ipairs({22,26,32,40}) do self.fonts[px]=ctx.fonts:size(px) end
- self:sample();self.last_save=self.sec or 0;self.changed_at=self.ms
+ self:sample();self.started_ms=self.ms;self.original_light=ctx.frontlight and ctx.frontlight:get();self.last_save=self.sec or 0;self.changed_at=self.ms
  local state,status=Store.load(ctx,self.sec);self.state=state or M.new();self.mode=status
  if not state then self.page={kind=status} else self.ctx.state=state;self:event(nil,status=='new' or status=='restored');if status=='restored' then self:message(S.restored) end end
  self:invalidate(true);return self
@@ -77,12 +78,32 @@ function A:flush_backup()
  local ok=Store.backup(self.ctx,self.state)
  if ok then self.backup_pending=false else self.ctx.log:error('E-BACKUP') end
 end
-function A:effects() end
-function A:coverage(i) return S.coverage[self.lock_default and 3 or 1] end
+function A:effects()
+ if self.paused or self.unsaved or self.signal or not self.sec then return end
+ local target=Alerts.choose(self.state,self.sec);if not target then return end
+ local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff
+ if elapsed<(self.last_attempt and C.ATTEMPT_INTERVAL_MS or 1000) then return end
+ local candidate,result=M.command(self.state,{action='ATTEMPT',id=target.id,gen=target.gen},self.sec)
+ if result=='OK' then
+  if self:commit(candidate,true) then self.last_attempt=self.ms;Signal.start(self,target.pat) end
+ end
+end
+function A:preview_pattern(pattern) Signal.start(self,pattern,true) end
+function A:coverage(i)
+ return S.coverage[Alerts.coverage(self.state,i,self.sec,self.ctx.device.keep_awake~=nil,self.lock_default and self.ctx.device.lock_timer)]
+end
 function A:plan()
  if self.pulse then self.pulse:cancel();self.pulse=nil end
  if not self.alive or self.mode=='blocked' or self.mode=='recovery' then return end
- local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,self.unsaved and 1000 or nil)
+ local extra=self.unsaved and 1000 or nil
+ if not self.unsaved and Alerts.choose(self.state,self.sec) then local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff;extra=math.max(self.signal and 100 or 1,(self.last_attempt and 2000 or 1000)-elapsed) end
+ local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,extra,self.page.id)
+ self.coverage_warning=nil
+ for _,i in ipairs(self.state.items) do if i.type==0 and i.st==1 and self:coverage(i)==S.coverage[1] then self.coverage_warning=S.open_strip end end
+ if self.ctx.device.keep_awake then
+  if Alerts.hold(self.state,self.sec) then self.ctx.device:keep_awake(math.min(14400000,((delay or 3600000)//1000+120)*1000));self.held=true
+  elseif self.held then self.ctx.device:keep_awake(0);self.held=false end
+ end
  if delay then self.pulse=self.ctx:after(delay,function(ctx) self:callback(function()
   self.pulse=nil;self:sample();self.peek=nil;self:event();self.tick_frames=(self.tick_frames or 0)+1
   self.ctx:defer_full_refresh(5000);self:invalidate(self.tick_frames%120==0)
@@ -114,7 +135,13 @@ end
 function A:action(h)
  local action,arg=h.action,h.arg;local p=self.page
  if action=='back' then
-  if p.kind=='deck' then return false end
+  if p.kind=='deck' then
+   local running=false;for _,i in ipairs(self.state.items) do if i.st==1 then running=true end end
+   if running and not (self.lock_default and self.ctx.device.lock_timer) and self.ctx.dialog then
+    self.ctx.dialog:confirm({title=S.leave_title,message=S.leave_text,ok_text=S.leave,cancel_text=S.stay},function(ctx,yes) self:callback(function() if yes then ctx:quit() end end) end);return true
+   end
+   return false
+  end
   if p.kind=='completion' then return self:action({action='clear_all'}) end
   if p.kind=='picker' and p.preview then self.preview_setting=nil end
   if p.kind=='form' and not p.live and not same(p.draft,p.original) or p.kind=='keypad' and p.digits and p.digits~='' then self:confirm(S.discard,function() self:pop() end) else self:pop() end
@@ -151,7 +178,10 @@ function A:action(h)
   if p.preview then p.value=arg;self.preview_setting={key=p.key,value=arg}
   elseif p.setting then if self:command('SETTINGS',nil,{values={[p.key]=p.key=='cnt' and arg+1 or arg}}) then self:pop() end
   else self:pick_field(p.key,p.key=='cnt' and arg+1 or arg);self:pop() end
- elseif action=='use' then if self:command('SETTINGS',nil,{values={[p.key]=p.value}}) then self.preview_setting=nil;self:pop() end
+ elseif action=='coverage' then self:push({kind='coverage'})
+ elseif action=='enable_awake' then self:command('SETTINGS',nil,{values={awake=1}});self:pop()
+ elseif action=='lockscreen' then if self.ctx.lockscreen then if self.lock_default then self.ctx.lockscreen:clear_default() else self.ctx.lockscreen:set_default() end;self:sample() end
+ elseif action=='use' then if self:command('SETTINGS',nil,{values={[p.key]=p.value}}) then self.preview_setting=nil;self:pop();self:invalidate(true) end
  elseif action=='menu' or action=='settings' then self:push({kind=action})
  elseif action=='setting' then
   local options={app=S.appearances,style=S.styles,secs=S.seconds_modes,pat=C.PATTERNS,cnt={'1','2','3','4','5'}}
@@ -186,7 +216,10 @@ function A:diagnose()
  for k,v in pairs(self.ctx.capabilities) do self.diagnostics[#self.diagnostics+1]=k..': '..tostring(v) end
 end
 function A:input(ctx,ev)
- self:sample();self:event()
+ self:sample()
+ if self.swallow then if ev.phase=='up' or ev.phase=='cancel' then self.swallow=nil end;return true end
+ if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';Signal.stop(self);self:event({action='SILENCE',targets=self.queue});self:invalidate(true);return true end
+ self:event()
  if self.fatal then return false end
  local h=N.input(self,ev);if h=='consumed' then return true elseif h=='redraw' then self:invalidate();return true elseif not h then return false end
  local handled=self:action(h);self:plan();self:invalidate();return handled
@@ -202,6 +235,10 @@ function A:draw(ctx,g)
  elseif kind=='menu' or kind=='settings' or kind=='actions' then require('lib.ui.menus').draw(self,g)
  elseif kind=='help' or kind=='info' then require('lib.ui.info').draw(self,g)
  elseif kind=='completion' then Completion.draw(self,g)
+ elseif kind=='coverage' then
+  W.top(self,g,S.title,true);g:text_box(20,140,440,300,S.leave_text,{font=self.fonts[26],color=self.ink})
+  if ctx.device.keep_awake then W.button(self,g,16,480,448,88,S.enable_awake,'enable_awake') end
+  if ctx.lockscreen then W.button(self,g,16,590,448,88,S.use_lock,'lockscreen') end
  elseif kind=='blocked' or kind=='recovery' then
   W.text(self,g,240,80,S.title,32,'center');g:text_box(20,200,440,280,kind=='blocked' and S.blocked or S.recovery,{font=self.fonts[32],color=self.ink})
   if kind=='blocked' then W.button(self,g,16,696,448,88,S.help,'help') else W.button(self,g,16,580,448,96,S.retry,'retry_load');W.button(self,g,16,696,448,88,S.fresh,'fresh') end
@@ -212,8 +249,8 @@ function A:draw(ctx,g)
  end
  if self.focus and self.hits[self.focus] and kind~='deck' then local h=self.hits[self.focus];g:rect(h.x+2,h.y+2,h.w-4,h.h-4,{color=self.ink,line_width=4}) end
 end
-function A:pause(ctx) if ctx.frontlight then ctx.frontlight:reset() end end
-function A:resume(ctx) self:sample();self:event();self:invalidate() end
+function A:pause(ctx) self.paused=true;Signal.stop(self) end
+function A:resume(ctx) self.paused=false;self:sample();self:event();self:invalidate() end
 function A:leave(ctx)
  self.alive=false;if self.backup_timer then self.backup_timer:cancel();self.backup_timer=nil end;if self.pulse then self.pulse:cancel() end;if self.settle then self.settle:cancel() end
  self:sample();if self.mode~='blocked' and self.mode~='recovery' then M.reconcile(self.state,self.sec);ctx.state=self.state;self:flush_backup() end;self:pause(ctx)

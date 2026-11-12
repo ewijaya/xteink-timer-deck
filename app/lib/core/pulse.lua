@@ -6,7 +6,7 @@ function P.seconds(setting,detail,i,value)
  if detail then return i.type==0 and value<=600 or i.type==1 and value<600 end
  return i.type==0 and value<=60
 end
-function P.plan(s,now,screen,last,extra)
+function P.plan(s,now,screen,last,extra,selected)
  if not now then return nil end
  local delay
  local function offer(ms) ms=math.max(1,math.min(3600000,ms));if not delay or ms<delay then delay=ms end end
@@ -16,12 +16,13 @@ function P.plan(s,now,screen,last,extra)
   if i.st==1 then
    local value=M.value(i,now)
    if i.type==0 then seconds(math.max(0,i.anc-now),150) end
-   if screen=='deck' or screen=='detail' then
+   if screen=='deck' or screen=='detail' and i.id==selected then
     if P.seconds(s.set.secs,screen=='detail',i,value) then seconds(1)
     else seconds(i.type==0 and ((math.max(1,value)-1)%60+1) or 60-value%60) end
    end
   end
  end
+ for _,i in ipairs(s.items) do if i.st==3 and i.sil==0 and now>=i.done and now-i.done<C.AUTO_RESET_SEC then seconds(C.AUTO_RESET_SEC-(now-i.done)) end end
  local reset=M.auto_reset_due(s);if reset then seconds(math.max(0,reset-now)) end
  for _,i in ipairs(s.items) do if i.st==1 then seconds(math.max(0,C.CHECKPOINT_SEC-(now-last)));break end end
  if extra then offer(extra) end

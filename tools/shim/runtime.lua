@@ -146,9 +146,9 @@ function R.new(options)
     function c.frontlight:get() return copy(c.light) end
     function c.frontlight:set(v)
       if (v.on~=nil and type(v.on)~='boolean') or (v.brightness~=nil and not int(v.brightness,0,100)) or (v.warmth~=nil and not int(v.warmth,0,100)) then return nil,'invalid_argument' end
-      for k,x in pairs(v) do c.light[k]=x end;c.light_calls[#c.light_calls+1]={'set',copy(v)}
+      for k,x in pairs(v) do c.light[k]=x end;c.light_calls[#c.light_calls+1]={'set',copy(v),at=c.elapsed}
     end
-    function c.frontlight:reset() c.light=copy(c.user_light);c.light_calls[#c.light_calls+1]={'reset'} end
+    function c.frontlight:reset() c.light=copy(c.user_light);c.light_calls[#c.light_calls+1]={'reset',at=c.elapsed} end
   end
   if c.kind=='lock' then
     c.capabilities.nn=false;c.lock={reason=o.reason or 'first',elapsed_sec=o.elapsed_sec or 0,interval_sec=60}

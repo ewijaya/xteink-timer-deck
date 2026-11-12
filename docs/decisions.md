@@ -16,3 +16,5 @@ Baseline discrepancies reserved for M1: Pebble PRIMARY dismissal does not increm
 - The pinned packager also imports tools/vendor/mksd.py. Vendor and hash-pin this unmodified MIT dependency; an empty data section is absent, with no hmac_data field.
 
 M2: Deck uses 32 px names and 40 px values when measured width fits; 26/22 px fallback keeps long labels/compact day values inside their columns. Geometry follows the PRD's tuning allowance; ten 63 px rows still fit. Host font measurement now brackets gsub's multiple return values before utf8.len, fixing a double-only error exposed by real labels. The lint tokenizes quoted/long strings before checking identifiers; ordinary module methods such as Store.load are permitted, while the unavailable global load remains banned.
+
+M4: the 40 px coverage strip uses a 56 px hit area extending into reserved whitespace above it, satisfying the minimum touch target without overlapping rows. Deck text reserves extra width because the HOST MOCK font metrics differ from Pillow glyph widths; device font fit remains V12.

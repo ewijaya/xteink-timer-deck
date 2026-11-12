@@ -1,14 +1,14 @@
 local App,app,fatal
 local function fail(ctx,code)
  if fatal~=code then ctx.log:error(code) end
- fatal=code;if ctx.frontlight then ctx.frontlight:reset() end
+ fatal=code;if app then pcall(app.pause,app,ctx) end;if ctx.frontlight then ctx.frontlight:reset() end
  ctx:invalidate('full')
 end
 local function guard(ctx,code,fn,...)
  local ok,result=pcall(fn,...);if not ok then fail(ctx,code) end;return ok,result
 end
 function on_load(ctx)
- guard(ctx,'E-LOAD',function() App=require('lib.app');app=App.new(ctx);fatal=nil end)
+ guard(ctx,'E-LOAD',function() if app then app:leave(ctx) end;App=require('lib.app');app=App.new(ctx);fatal=nil end)
 end
 function on_draw(ctx,g)
  local ok=pcall(function()
@@ -20,7 +20,7 @@ function on_draw(ctx,g)
   end
  end)
  if not ok then
-  fatal='E-DRAW';pcall(function() ctx.log:error(fatal);if ctx.frontlight then ctx.frontlight:reset() end;App.draw_fatal(ctx,g,fatal) end)
+  fatal='E-DRAW';if app then pcall(app.pause,app,ctx) end;pcall(function() ctx.log:error(fatal);if ctx.frontlight then ctx.frontlight:reset() end;App.draw_fatal(ctx,g,fatal) end)
  end
 end
 function on_input(ctx,ev)

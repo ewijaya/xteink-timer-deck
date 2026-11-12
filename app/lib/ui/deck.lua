@@ -3,7 +3,7 @@ local D={}
 function D.draw(a,g)
  W.text(a,g,20,24,S.title,32);W.text(a,g,460,28,#a.state.items..'/10  '..F.clock(a.now),22,'right');g:line(0,79,479,79,{color=a.ink,line_width=2})
  local strip=a.warning or (not a.sec and S.clock_unset) or a.coverage_warning
- local area=strip and 590 or 630
+ local area=strip and 574 or 630
  local entries={};if a.chain_entry then entries[1]=a.chain_entry end;for _,i in ipairs(a.state.items) do entries[#entries+1]=i end
  local height=math.max(63,math.min(104,area//math.max(#entries,6)));local per=area//height
  local page=a.page.offset or 0;a.page_count=math.max(1,(#entries+per-1)//per)
@@ -16,9 +16,9 @@ function D.draw(a,g)
    if i.icon>0 then W.icon(a,g,i.icon,12,y+(height-44)//2,44) else g:rect(12,y+(height-44)//2,44,44,{color=a.ink,line_width=2,radius=7});W.text(a,g,34,y+(height-26)//2,string.format('%02d',i.num),22,'center') end
    local seconds=v and P.seconds(a.state.set.secs,false,i,v)
    local value=v and F.compact(v,i.type==0,not seconds,a.state.set.secs==2) or '--:--'
-   local labelsize=a.fonts[32]:measure(F.label(i))<=185 and 32 or 26
-   W.text(a,g,80,y+9,W.fit(a,F.label(i),185,labelsize),labelsize)
-   local valuesize=a.fonts[40]:measure(value)<=124 and 40 or a.fonts[26]:measure(value)<=124 and 26 or 22
+   local labelsize=a.fonts[32]:measure(F.label(i))<=145 and 32 or 26
+   W.text(a,g,80,y+9,W.fit(a,F.label(i),155,labelsize),labelsize)
+   local valuesize=a.fonts[40]:measure(value)<=100 and 40 or a.fonts[26]:measure(value)<=124 and 26 or 22
    W.text(a,g,392,y+9,W.fit(a,value,124,valuesize),valuesize,'right')
    if height>=79 then W.text(a,g,80,y+43,i.lim==1 and S.limit or i.st~=1 and S.states[i.st+1] or '',22) end
    if v and i.type==0 and (i.st==1 or i.st==2) then g:rect(80,y+height-10,F.ratio(v,i.dur,312),4,{color=a.ink,fill=true}) end
@@ -33,6 +33,7 @@ function D.draw(a,g)
   g:text_box(28,370,424,190,S.notice,{font=a.fonts[26],color=a.ink})
   W.button(a,g,16,580,448,96,S.new_timer,'new_timer',nil,nil,nil,true,32)
  end
+ if strip and a.coverage_warning and not a.warning then N.hit(a,0,654,480,56,'coverage') end
  if strip then g:rect(0,670,480,40,{fill=true,color=a.ink});W.text(a,g,240,679,W.fit(a,strip,470,22),22,'center',a.paper) end
  W.button(a,g,0,712,160,88,S.new_timer,'new_timer',nil,nil,nil,false,22)
  W.button(a,g,160,712,160,88,S.chains,'chains',nil,nil,nil,false,22)

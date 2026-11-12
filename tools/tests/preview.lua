@@ -18,3 +18,5 @@ a.page={kind='deck'};a.stack={};local s=M.new(a.sec);s=M.command(s,{action='CREA
 local g=R.canvas(c);App.draw_fatal(c,g,'E-DRAW');print(assert(J:encode({name='HOST-MOCK-fatal',commands=g.commands})))
 
 for _,kind in ipairs({'recovery','blocked'}) do a.page={kind=kind};emit(kind) end
+a.mode='ok';a.page={kind='deck'};a.state=M.new(a.sec);a.state=M.command(a.state,{action='CREATE_START',dur=18000,name='Slow roast'},a.sec);a:plan();emit('coverage-deck');a.page={kind='coverage'};emit('coverage-help')
+a.page={kind='completion'};a.state=s;a.queue=M.completions(s,true);a.queue_pos=1;a.flash=true;emit('flash');a.flash=false

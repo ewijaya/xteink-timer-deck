@@ -14,6 +14,7 @@ return {
  FULL='10 items saved. Delete one to add another.',INVALID='Check the values and try again.',STALE='This item changed. Try again.',OVERFLOW="This timer would end after the device clock's limit (January 2038).",CLOCK='Set the device clock to use timers.',
  zero='Set at least 1 second',name_rule='Names use up to 16 basic Latin characters.',save_error='Could not save. Try again.',not_saved='NOT SAVED - RETRYING',clock_unset='CLOCK NOT SET',
  rollback='Clock changed. Timers restored from last saved time.',open_only='ALERTS ONLY WHILE TIMER DECK IS OPEN',
+ open_strip='ALERTS ONLY WHILE TIMER DECK IS OPEN',enable_awake='Turn on Stay awake',use_lock='Use lock screen',
  coverage={'Alert: only while open','Alert: screen stays on','Alert: lock screen'},leave_title='Leave Timer Deck?',leave_text='Timers keep counting. You will not be alerted until you open Timer Deck again.',leave='Leave',stay='Stay',
  erase_text='Reset saved data? All Timer Deck items and settings will be removed.',restored='Saved data was restored from a backup.',recovery='Saved data could not be read.',blocked='Saved data needs a newer Timer Deck version.',fresh='Start fresh',ok='OK',
  finished_away='FINISHED AWAY',queue='%d OF %d DONE',away_queue='AWAY %d OF %d',

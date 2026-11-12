@@ -20,6 +20,7 @@ function N.input(a,ev)
   end
   if ev.key=='up' then
    if a.page.kind=='deck' and a.focus and a.state.items[a.focus] then local i=a.state.items[a.focus];return {action='primary',id=i.id,gen=i.gen} end
+   if a.page.kind=='completion' then local t=a.queue[a.queue_pos];if t then return {action='dismiss',id=t.id,gen=t.gen} end end
    if a.page.kind=='detail' then local i=require('lib.core.model').find(a.state,a.page.id);if i then return {action='primary',id=i.id,gen=i.gen} end end
    return a.hits[a.focus or 1]
   end
