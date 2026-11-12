@@ -27,3 +27,6 @@ for _,case in ipairs({'empty','running','finished','paused','watch','invalid'}) 
  if case=='paused' then state=M.command(state,{action='PRIMARY',id=1,gen=1},a.sec) elseif case=='finished' then state.items[1].anc=a.sec-1 elseif case=='invalid' then state={v=2} end
  for _,dark in ipairs({false,true}) do local lock=R.session(files,state,'lock');lock.dark=dark;local canvas=lock:draw();print(assert(J:encode({name='HOST-MOCK-lock-'..case..(dark and '-dark' or '-light'),dark=dark,commands=canvas.commands}))) end
 end
+a.state=M.new(a.sec);a.mode='ok';a.flash=false;a.page={kind='deck'};a.stack={};a:action({action='chains'});emit('chains-empty');a:action({action='ch_new'});emit('chain-new');a:action({action='ch_template',arg='Pomodoro'});emit('chain-editor');a:action({action='ch_step',arg=1});emit('chain-step');a:action({action='ch_step_save'});a:action({action='ch_save'});emit('chain-overview');a:action({action='ch_start'});emit('chain-run');a:action({action='ch_more'});emit('chain-actions');a:action({action='ch_steps'});emit('chain-steps');a:action({action='chains'});emit('chains-list')
+a.page={kind='deck'};for n=1,10 do a:command('CREATE',nil,{dur=600,icon=n,name='Timer '..n}) end;a:plan();emit('chain-deck-ten')
+local run=a.state.ch.run;a:command('CH_STOP',nil,{gen=run.gen,step=run.snap.steps[run.idx].id,round=run.round});emit('chain-result')

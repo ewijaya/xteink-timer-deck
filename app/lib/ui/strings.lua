@@ -11,6 +11,7 @@ return {
  appearances={'Auto','Light','Dark'},styles={'Ion','Cobalt','Plasma','Solar'},seconds_modes={'Smart','Always','Never'},onoff={'Off','On'},use='Use this',preview='Preview',
  default_alert='Default alert',default_count='Default count',battery='Uses more battery',clear_all='Clear all',count_up='COUNT UP',limit='LIMIT REACHED',
  reset_duration='Reset to edit duration',timer_name='Timer name',watch_name='Stopwatch name',discard='Discard changes?',discard_new='Discard new timer?',
+ ACTIVE='A chain is already active',CHAIN_FULL='You have 5 saved chains',
  FULL='10 items saved. Delete one to add another.',INVALID='Check the values and try again.',STALE='This item changed. Try again.',OVERFLOW="This timer would end after the device clock's limit (January 2038).",CLOCK='Set the device clock to use timers.',
  zero='Set at least 1 second',name_rule='Names use up to 16 basic Latin characters.',save_error='Could not save. Try again.',not_saved='NOT SAVED - RETRYING',clock_unset='CLOCK NOT SET',
  rollback='Clock changed. Timers restored from last saved time.',open_only='ALERTS ONLY WHILE TIMER DECK IS OPEN',

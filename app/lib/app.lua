@@ -1,6 +1,7 @@
 local M=require('lib.core.model');local C=require('lib.core.const');local F=require('lib.core.format');local P=require('lib.core.pulse')
 local S=require('lib.ui.strings');local Clock=require('lib.platform.clock');local Store=require('lib.platform.store');local N=require('lib.ui.nav');local W=require('lib.ui.widgets');local Theme=require('lib.ui.theme')
 local Deck=require('lib.ui.deck');local Detail=require('lib.ui.detail');local Keypad=require('lib.ui.keypad');local Completion=require('lib.ui.completion')
+local H=require('lib.core.chains')
 local Alerts=require('lib.core.alerts');local Signal=require('lib.platform.signal')
 local A={};A.__index=A
 local function same(a,b) if type(a)~=type(b) then return false end;if type(a)~='table' then return a==b end;for k,v in pairs(a) do if not same(v,b[k]) then return false end end;for k in pairs(b) do if a[k]==nil then return false end end;return true end
@@ -55,7 +56,7 @@ function A:event(command,initial)
  local success=true
  if command then
   local candidate,result=M.command(self.state,command,self.sec)
-  if result~='OK' then success=false;self:message(S[result] or S.INVALID)
+  if result~='OK' then success=false;if result~='STALE' then self:message(S[result] or S.INVALID) end
   elseif not same(candidate,self.state) then success=self:commit(candidate,false) end
  elseif initial or M.checkpoint_due(self.state,self.sec,self.last_save) then local checkpoint=not initial;self.checkpoint=checkpoint;self:commit(M.copy(self.state),true);self.checkpoint=false end
  self:completion();self:effects();self:plan();return success
@@ -64,6 +65,8 @@ function A:completion()
  local q=M.completions(self.state,true);local unseen=false
  for _,r in ipairs(q) do local i=M.find(self.state,r.id);if i.sil==0 and not self.shown[r.id..':'..r.gen] then unseen=true;self.shown[r.id..':'..r.gen]=true end end
  self.queue=q
+ local run=self.state.ch.run
+ if run.st>=3 and not self.shown['chain:'..run.gen..':'..run.st] then self.shown['chain:'..run.gen..':'..run.st]=true;self:push({kind='chain_result'}) end
  if unseen and self.page.kind~='completion' then self:push({kind='completion'});self:invalidate(true) end
  if self.page.kind=='completion' and #q==0 then self:pop();self:invalidate(true) end
  self.queue_pos=math.max(1,math.min(self.queue_pos,#q))
@@ -83,9 +86,9 @@ function A:effects()
  local target=Alerts.choose(self.state,self.sec);if not target then return end
  local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff
  if elapsed<(self.last_attempt and C.ATTEMPT_INTERVAL_MS or 1000) then return end
- local candidate,result=M.command(self.state,{action='ATTEMPT',id=target.id,gen=target.gen},self.sec)
+ local candidate,result=M.command(self.state,{action=target.chain and (target.cue and 'CH_CUE' or 'CH_ATTEMPT') or 'ATTEMPT',id=target.id,gen=target.gen,step=target.step,round=target.round},self.sec)
  if result=='OK' then
-  if self:commit(candidate,true) then self.last_attempt=self.ms;Signal.start(self,target.pat) end
+  if self:commit(candidate,true) then self.last_attempt=self.ms;if target.cue then self.banner='Starting now: '..self.state.ch.run.snap.steps[self.state.ch.run.idx].name end;Signal.start(self,target.pat) end
  end
 end
 function A:preview_pattern(pattern) Signal.start(self,pattern,true) end
@@ -98,7 +101,10 @@ function A:plan()
  local extra=self.unsaved and 1000 or nil
  if not self.unsaved and Alerts.choose(self.state,self.sec) then local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff;extra=math.max(self.signal and 100 or 1,(self.last_attempt and 2000 or 1000)-elapsed) end
  local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,extra,self.page.id)
- self.coverage_warning=nil
+ self.coverage_warning=nil;self.chain_entry=nil
+ local run=self.state.ch.run
+ if run.st~=0 then local step=run.snap.steps[run.idx];self.chain_entry={chain=true,id=run.id,gen=run.gen,num=0,name=run.snap.name,icon=run.snap.icon,type=0,st=run.st==4 and 3 or run.st,dur=step.sec,val=H.value(run,self.sec),anc=run.anc,lim=0} end
+ if run.st==1 and not (self.lock_default and self.ctx.device.lock_timer) and not (self.state.set.awake==1 and self.ctx.device.keep_awake and self.sec and H.remaining(run,self.sec)<=C.AWAKE_HORIZON_SEC) then self.coverage_warning=S.open_strip end
  for _,i in ipairs(self.state.items) do if i.type==0 and i.st==1 and self:coverage(i)==S.coverage[1] then self.coverage_warning=S.open_strip end end
  if self.ctx.device.keep_awake then
   if Alerts.hold(self.state,self.sec) then self.ctx.device:keep_awake(math.min(14400000,((delay or 3600000)//1000+120)*1000));self.held=true
@@ -118,12 +124,13 @@ function A:open_form(i)
  self:push({kind='form',id=i and i.id,gen=i and i.gen,draft=d,original=M.copy(d),live=i and i.st~=0 and i.st~=2})
 end
 function A:form_page()
- if self.page.kind=='form' then return self.page end
- for n=#self.stack,1,-1 do if self.stack[n].kind=='form' then return self.stack[n] end end
+ if self.page.kind=='form' or self.page.kind=='chain_edit' or self.page.kind=='chain_step' then return self.page end
+ for n=#self.stack,1,-1 do if self.stack[n].kind=='form' or self.stack[n].kind=='chain_edit' or self.stack[n].kind=='chain_step' then return self.stack[n] end end
 end
 function A:pick_field(key,value)
  local form=self:form_page();if not form then return end
- if form.live then
+ if form.chain_draft then form.draft[key=='dur' and 'sec' or key]=value
+ elseif form.live then
   if self:command(key=='name' and 'RENAME' or 'ICON',form,{[key]=value}) then form.draft[key]=value end
  else form.draft[key]=value end
 end
@@ -134,9 +141,10 @@ function A:help()
 end
 function A:action(h)
  local action,arg=h.action,h.arg;local p=self.page
+ if action:sub(1,3)=='ch_' or action=='chains' or action=='chain_run' then return require('lib.ui.chains').action(self,h) end
  if action=='back' then
   if p.kind=='deck' then
-   local running=false;for _,i in ipairs(self.state.items) do if i.st==1 then running=true end end
+   local running=self.state.ch.run.st==1;for _,i in ipairs(self.state.items) do if i.st==1 then running=true end end
    if running and not (self.lock_default and self.ctx.device.lock_timer) and self.ctx.dialog then
     self.ctx.dialog:confirm({title=S.leave_title,message=S.leave_text,ok_text=S.leave,cancel_text=S.stay},function(ctx,yes) self:callback(function() if yes then ctx:quit() end end) end);return true
    end
@@ -144,7 +152,7 @@ function A:action(h)
   end
   if p.kind=='completion' then return self:action({action='clear_all'}) end
   if p.kind=='picker' and p.preview then self.preview_setting=nil end
-  if p.kind=='form' and not p.live and not same(p.draft,p.original) or p.kind=='keypad' and p.digits and p.digits~='' then self:confirm(S.discard,function() self:pop() end) else self:pop() end
+  if (p.kind=='form' or p.kind=='chain_edit' or p.kind=='chain_step') and not p.live and not same(p.draft,p.original) or p.kind=='keypad' and p.digits and p.digits~='' then self:confirm(S.discard,function() self:pop() end) else self:pop() end
  elseif action=='new_timer' then if #self.state.items>=C.CAPACITY then self:message(S.FULL) else self:push({kind='keypad'}) end
  elseif action=='digit' then if p.replace and arg~='back' then p.digits=nil end;p.replace=false;p.digits=F.keypad(p.digits,arg)
  elseif action=='days' then p.days=math.max(0,math.min(999,(p.days or 0)+arg))
@@ -218,7 +226,7 @@ end
 function A:input(ctx,ev)
  self:sample()
  if self.swallow then if ev.phase=='up' or ev.phase=='cancel' then self.swallow=nil end;return true end
- if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';Signal.stop(self);self:event({action='SILENCE',targets=self.queue});self:invalidate(true);return true end
+ if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';Signal.stop(self);self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st~=0 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end
  self:event()
  if self.fatal then return false end
  local h=N.input(self,ev);if h=='consumed' then return true elseif h=='redraw' then self:invalidate();return true elseif not h then return false end
@@ -235,6 +243,7 @@ function A:draw(ctx,g)
  elseif kind=='menu' or kind=='settings' or kind=='actions' then require('lib.ui.menus').draw(self,g)
  elseif kind=='help' or kind=='info' then require('lib.ui.info').draw(self,g)
  elseif kind=='completion' then Completion.draw(self,g)
+ elseif kind:sub(1,6)=='chain_' or kind=='chains' then require('lib.ui.chains').draw(self,g)
  elseif kind=='coverage' then
   W.top(self,g,S.title,true);g:text_box(20,140,440,300,S.leave_text,{font=self.fonts[26],color=self.ink})
   if ctx.device.keep_awake then W.button(self,g,16,480,448,88,S.enable_awake,'enable_awake') end

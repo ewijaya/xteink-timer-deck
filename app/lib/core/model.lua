@@ -1,13 +1,10 @@
 local C=require('lib.core.const')
 local F=require('lib.core.format')
+local H=require('lib.core.chains')
 local M={}
 local function integer(n,lo,hi) return math.type(n)=='integer' and n>=lo and n<=hi end
 function M.copy(v) if type(v)~='table' then return v end;local t={};for k,x in pairs(v) do t[k]=M.copy(x) end;return t end
-function M.add_time(now,duration)
- if not integer(now,1,C.MAX_INT) or not integer(duration,0,C.MAX_SEC) then return nil,'CLOCK' end
- if duration>C.MAX_INT-now then return nil,'OVERFLOW' end
- return now+duration
-end
+M.add_time=C.add_time
 function M.new(now)
  return {v=1,rev=0,next_id=1,sel=0,trusted=now or 0,
  set={app=0,style=0,pat=C.DEFAULT_PATTERN,cnt=C.DEFAULT_COUNT,flash=1,light=1,secs=0,awake=1},
@@ -67,8 +64,7 @@ function M.valid(s)
   end
   assert(s.sel==0 or ids[s.sel],'selection')
   assert(dense(s.rc,C.RECEIPTS));for _,r in ipairs(s.rc) do assert(integer(r.dig,-2147483647-1,C.MAX_INT) and integer(r.len,0,16384) and integer(r.n,1,15)) end
-  -- M1 supports only the reserved empty chain container; M6 extends validation.
-  assert(s.ch.last==0 and dense(s.ch.saved,0) and s.ch.run.st==0,'chains not implemented')
+  assert(dense(s.ch.saved,5));H.valid(s.ch)
  end
  local ok,reason=pcall(check);return ok,ok and nil or tostring(reason)
 end
@@ -81,13 +77,13 @@ local function advance(s,now)
    elseif i.type==1 and v==C.MAX_SEC then i.val=v;i.anc=0;i.st=2;i.lim=1;changed=true end
   end
  end
- return changed
+ return H.advance(s,now,M) or changed
 end
 function M.reconcile(s,now)
  if not integer(now,1,C.MAX_INT) then return false end
  local changed,rollback=false,false
  if now<s.trusted then
-  advance(s,s.trusted)
+  advance(s,s.trusted);H.rebase(s,s.trusted,now,M)
   for _,i in ipairs(s.items) do if i.st==1 then
    local v=M.value(i,s.trusted)
    if i.type==0 then i.anc=assert(M.add_time(now,v)) else i.val=v;i.anc=now end
@@ -112,10 +108,11 @@ function M.auto_reset_due(s)
 end
 function M.checkpoint_due(s,now,last)
  if not integer(now,1,C.MAX_INT) or now<last or now-last<C.CHECKPOINT_SEC then return false end
- for _,i in ipairs(s.items) do if i.st==1 then return true end end;return false
+ for _,i in ipairs(s.items) do if i.st==1 then return true end end;return s.ch.run.st==1
 end
 local function apply(s,c,now)
  local action=c.action
+ if type(action)=='string' and action:sub(1,3)=='CH_' then return s,H.command(s,c,now,M) end
  if action=='ERASE' then return M.new(now),'OK' end
  if action=='SETTINGS' then
   if type(c.values)~='table' then return s,'INVALID' end

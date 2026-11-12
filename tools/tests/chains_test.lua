@@ -1,0 +1,33 @@
+package.path='tools/shim/?.lua;app/?.lua;'..package.path
+local M=require('lib.core.model');local H=require('lib.core.chains');local C=require('lib.core.const');local J=require('json');local Alerts=require('lib.core.alerts');local G=require('lib.core.glance')
+local function cmd(s,c,now,result) local next,status=M.command(s,c,now);assert(status==(result or 'OK'),c.action..': '..status);assert(M.valid(next));if status~='OK' then assert(next==s) end;return next end
+local function target(s,action) local r=s.ch.run;return {action=action,gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round} end
+local function base(a,b,rounds)
+ local s=M.new(1000);local d=H.template('Tea',2);d.steps[1].sec=a or 60;d.steps[2].sec=b or 120;d.rounds=rounds or 1;s=cmd(s,{action='CH_SAVE',definition=d},1000);return s
+end
+local s=base();assert(s.ch.saved[1].id==1);s=cmd(s,{action='CH_DUPLICATE',id=1,rev=1},1000);s=cmd(s,{action='CH_MOVE',id=2,rev=1,direction=-1},1000);assert(s.ch.saved[1].id==2)
+s=cmd(s,{action='CH_DELETE',id=2,rev=1},1000);local d=M.copy(s.ch.saved[1]);d.name='Practice';s=cmd(s,{action='CH_SAVE',id=1,rev=1,definition=d},1000);assert(s.ch.saved[1].rev==2);cmd(s,{action='CH_SAVE',id=1,rev=1,definition=d},1000,'STALE');print('HOST MOCK Passed TH01')
+for _,v in ipairs({{'Pomodoro',1500,300,4,9},{'Plank',30,30,3,6},{'Tea',240,180,1,1}}) do d=H.template(v[1],3);assert(d.steps[1].sec==v[2] and d.steps[2].sec==v[3] and d.rounds==v[4] and d.icon==v[5] and d.steps[2].pat==3) end;print('HOST MOCK Passed TH02')
+s=base();s=cmd(s,{action='CH_START',id=1,rev=1},1000);assert(M.reconcile(s,1062));assert(s.ch.run.idx==2 and s.ch.run.anc==1180);assert(M.valid(s));M.reconcile(s,1180);assert(s.ch.run.st==3 and s.ch.run.ev==1180);print('HOST MOCK Passed TH04')
+s=base(60,120,4);s=cmd(s,{action='CH_START',id=1,rev=1},1000);M.reconcile(s,1720);assert(s.ch.run.st==3 and s.ch.run.ev==1720);assert(M.valid(s));print('HOST MOCK Passed TH05')
+s=base();s=cmd(s,{action='CH_START',id=1,rev=1},1000);local old=target(s,'CH_PRIMARY');M.reconcile(s,1060);cmd(s,old,1060,'STALE');s=cmd(s,target(s,'CH_PRIMARY'),1060);assert(s.ch.run.st==2 and s.ch.run.anc==120)
+s=cmd(s,target(s,'CH_RESTART'),1070);s=cmd(s,target(s,'CH_PRIMARY'),1080);assert(s.ch.run.anc==1200);s=cmd(s,target(s,'CH_SKIP'),1080);assert(s.ch.run.st==3 and s.ch.run.skipped==1);print('HOST MOCK Passed TH06')
+s=base();s=cmd(s,{action='CH_START',id=1,rev=1},1000);s=cmd(s,target(s,'CH_STOP'),1010);assert(s.ch.run.st==4);s=cmd(s,{action='CH_START',id=1,rev=1},1020);s=cmd(s,{action='CH_DELETE',id=1,rev=1},1020);assert(s.ch.run.st==0 and #s.ch.saved==0);print('HOST MOCK Passed TH07')
+s=base(10,10,2);s=cmd(s,{action='CH_START',id=1,rev=1},1000);M.reconcile(s,1022);assert(s.ch.run.away==2 and s.ch.run.cue==0);s=base();s=cmd(s,{action='CH_START',id=1,rev=1},1000);M.reconcile(s,1062);assert(s.ch.run.cue==1);print('HOST MOCK Passed TH08')
+s=base(1,1);s=cmd(s,{action='CH_START',id=1,rev=1},1000);for _=1,10 do s=cmd(s,{action='CREATE_START',dur=2,cnt=1},1000) end;M.reconcile(s,1002)
+local seen={};for _=1,11 do local t=assert(Alerts.choose(s,1002));assert(t.att==0);if t.chain then seen.chain=true;t.action='CH_ATTEMPT' else assert(not seen[t.id]);seen[t.id]=true;t.action='ATTEMPT' end;s=cmd(s,t,1002) end;assert(seen.chain);print('HOST MOCK Passed TH09')
+s=base(C.MAX_SEC-1,1);assert(H.total(s.ch.saved[1])==C.MAX_SEC);cmd(s,{action='CH_START',id=1,rev=1},C.MAX_INT-10,'OVERFLOW');d=M.copy(s.ch.saved[1]);d.rounds=2;cmd(s,{action='CH_SAVE',definition=d},1000,'INVALID');print('HOST MOCK Passed TH10')
+-- Fullest legal state, including ten 16-character names, all steps and a snapshot.
+s=M.new(1000);for _=1,10 do s=cmd(s,{action='CREATE',name=string.rep('T',16),dur=1000,icon=30,cnt=5},1000) end
+for _=1,5 do d=H.template('Tea',3);d.name=string.rep('C',16);d.steps={};d.next_step=11;for n=1,10 do d.steps[n]={id=n,name=string.rep('S',16),sec=1000,icon=30,pat=3} end;d.rounds=9;s=cmd(s,{action='CH_SAVE',definition=d},1000) end
+s=cmd(s,{action='CH_START',id=1,rev=1},1000);for n=1,4 do s.rc[n]={dig=2147483647,len=16384,n=15} end
+assert(M.valid(s));local encoded=assert(J:encode(s));assert(#encoded<=12288,#encoded);print('HOST MOCK Passed TS01 full state '..#encoded..' bytes')
+-- Rollback preserves current remainder and shifts all future boundaries together.
+M.reconcile(s,1040);local remaining=H.remaining(s.ch.run,1040);M.reconcile(s,900);assert(H.remaining(s.ch.run,900)==remaining and M.valid(s))
+local view=G.view(s,{valid=true,epoch_sec=900,hour=0,minute=15,year=1970,month=1,day=1});assert(view.chain and view.interval==60)
+local R=require('runtime');local App=require('lib.app');local c=R.new();local a=App.new(c)
+local function act(action,arg) assert(a:action({action=action,arg=arg}));local g=R.canvas(c);a:draw(c,g);assert(g.command_count<=768);for n,h in ipairs(a.hits) do for k=1,n-1 do local b=a.hits[k];assert(h.x>=b.x+b.w or b.x>=h.x+h.w or h.y>=b.y+b.h or b.y>=h.y+h.h,'overlap '..a.page.kind) end end end
+act('chains');act('ch_new');act('ch_template','Tea');act('ch_save');act('ch_start');assert(a.state.ch.run.st==1);a:draw(c,R.canvas(c));act('ch_primary',a.page.token);assert(a.state.ch.run.st==2);act('ch_primary',a.page.token);act('ch_more');act('ch_stop');local f=c.overlay.fn;c.overlay=nil;f(c,true);assert(a.state.ch.run.st==4)
+act('ch_done',{gen=a.state.ch.run.gen,step=a.state.ch.run.snap.steps[1].id,round=1})
+a:command('CREATE_START',nil,{dur=240,name='Tea',icon=1});local original=assert(J:encode(a.state.items))
+act('ch_new');act('ch_from_new');act('ch_select',1);act('ch_add_selected');assert(a.page.draft.steps[1].sec==240 and J:encode(a.state.items)==original);act('ch_add');act('ch_new_step');act('ch_time');act('time_done');act('ch_step_save');act('ch_save');assert(#a.state.ch.saved==2);print('HOST MOCK Passed TH03 / chain UI walk')

@@ -22,6 +22,6 @@ M2–M8 continuation (2026-11-12):
 - [x] M3: validation/recovery, atomic save failures, backup, storage suites TS01–TS11
 - [x] M4: alert queue/light/flash, coverage, pulse/cadence, TA/TD suites
 - [x] M5: read-only adaptive lock page, TL01–TL06
-- [ ] M6: chain definitions, commands, screens, TH01–TH10
+- [x] M6: chain definitions, commands, screens, TH01–TH10
 - [ ] M7: styles and transactional import/export, TI01–TI04
 - [ ] M8: full host validation, package round trip, documentation/checklist handoff

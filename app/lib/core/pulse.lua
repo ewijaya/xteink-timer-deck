@@ -1,5 +1,6 @@
 local C=require('lib.core.const')
 local M=require('lib.core.model')
+local H=require('lib.core.chains')
 local P={}
 function P.seconds(setting,detail,i,value)
  if setting==1 then return true elseif setting==2 then return false end
@@ -23,6 +24,14 @@ function P.plan(s,now,screen,last,extra,selected)
   end
  end
  for _,i in ipairs(s.items) do if i.st==3 and i.sil==0 and now>=i.done and now-i.done<C.AUTO_RESET_SEC then seconds(C.AUTO_RESET_SEC-(now-i.done)) end end
+ local r=s.ch.run
+ if r.st==1 then
+  local value=H.value(r,now);seconds(value,150)
+  if screen=='chain_run' or screen=='deck' then
+   if P.seconds(s.set.secs,screen=='chain_run',{type=0},value) then seconds(1) else seconds((math.max(1,value)-1)%60+1) end
+  end
+  seconds(math.max(0,C.CHECKPOINT_SEC-(now-last)))
+ end
  local reset=M.auto_reset_due(s);if reset then seconds(math.max(0,reset-now)) end
  for _,i in ipairs(s.items) do if i.st==1 then seconds(math.max(0,C.CHECKPOINT_SEC-(now-last)));break end end
  if extra then offer(extra) end

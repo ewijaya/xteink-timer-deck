@@ -83,7 +83,7 @@ run('TC22',function()
 end)
 run('TR01',function() local s=one();s=act(s,1,'PRIMARY',1000);local copy=M.copy(s);for n=1,7 do M.reconcile(copy,1000+n) end;M.reconcile(s,1007);assert(J:encode(s)==J:encode(copy)) end)
 local model_sources={}
-for _,name in ipairs({'model','const','format'}) do local f=assert(io.open('app/lib/core/'..name..'.lua'));model_sources['lib/core/'..name..'.lua']=f:read('a');f:close() end
+for _,name in ipairs({'model','const','format','chains'}) do local f=assert(io.open('app/lib/core/'..name..'.lua'));model_sources['lib/core/'..name..'.lua']=f:read('a');f:close() end
 local function relaunch(s,now)
  local files=M.copy(model_sources);files['index.lua']=[[local M=require('lib.core.model');function on_load(ctx) M.reconcile(ctx.state,ctx.clock:now().epoch_sec) end]]
  local c=R.session(files,s,'main',{now={valid=true,epoch_sec=now}});assert(c.alive,c.error);valid(c.state);return c.state
