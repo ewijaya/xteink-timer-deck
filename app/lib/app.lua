@@ -214,7 +214,8 @@ function A:action(h)
  elseif action=='retry_load' then
   local state,status=Store.load(self.ctx,self.sec);if state then self.state=state;self.ctx.state=state;self.mode=status;self.page={kind='deck'};self.stack={};self:event(nil,status~='ok') end
  elseif action=='fresh' then self:confirm(S.erase_text,function()
-  self.mode='new';self.state=M.new(self.sec);if self:commit(M.copy(self.state),false) then self.page={kind='deck'};self.stack={} else self.mode='recovery' end
+  local original=self.ctx.state;local previous=self.state
+  self.mode='new';self.state=M.new(self.sec);if self:commit(M.copy(self.state),false) then self.page={kind='deck'};self.stack={} else self.ctx.state=original;self.state=previous;self.mode='recovery' end
  end)
  elseif action=='accept' then local fn=p.accept;self:pop();fn()
  elseif action=='ok' then self:pop()

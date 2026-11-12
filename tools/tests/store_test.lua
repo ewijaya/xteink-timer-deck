@@ -16,3 +16,8 @@ check('TS09',function()
 end)
 check('TS10',function() local c=R.new();local a=App.new(c);local saved=c.save_attempts;local fonts=#c.font_requests;c:call('on_draw',function(ctx) a:draw(ctx,R.canvas(ctx)) end);assert(c.alive,c.error);assert(c.save_attempts==saved and #c.font_requests==fonts) end)
 check('TS11',function() local c=R.new();local a=App.new(c);a:command('CREATE',nil,{dur=10});c:call('crash',function() error('injected') end);local next=R.new({state=c.persisted});assert(#assert(Store.load(next,1000)).items==1) end)
+
+check('TS07-fresh-save-failure',function()
+ local c=R.new({state={bad=1}});local a=App.new(c);a:action({action='fresh'});local f=c.overlay.fn;c.overlay=nil;c.save_failure='io_error';f(c,true)
+ assert(a.mode=='recovery' and c.state.bad==1 and c.persisted.bad==1);a:leave(c);assert(c.state.bad==1)
+end)
