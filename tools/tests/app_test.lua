@@ -10,6 +10,38 @@ local function draw()
  end
  return g
 end
+-- TU20 release walk: exercise every replacement route, including confirmations.
+do
+ local H=require('lib.core.chains')
+ local function yes(a,c) local fn=assert(c.overlay).fn;c.overlay=nil;fn(c,true) end
+ local function chain(a) assert(a:command('CH_SAVE',nil,{definition=H.template('Tea',0)})) end
+ local routes={
+  {'create',function(a) a:action({action='new_timer'}) end,function(a) a:action({action='create',arg=true}) end,'detail'},
+  {'delete',function(a) a:command('CREATE',nil,{dur=600}) end,function(a) a:action({action='delete',id=1,gen=0}) end,'deck'},
+  {'save_form',function(a) a:action({action='new_watch'}) end,function(a) a:action({action='save_form'}) end,'deck'},
+  {'erase',function(a) a:action({action='erase'}) end,yes,'deck'},
+  {'retry_load',function(a,c) a.mode='recovery';a.page={kind='recovery'};c.state=M.new(a.sec) end,function(a) a:action({action='retry_load'}) end,'deck'},
+  {'fresh',function(a) a.mode='recovery';a.page={kind='recovery'};a:action({action='fresh'}) end,yes,'deck'},
+  {'ch_save',function(a) a:action({action='ch_template',arg='Tea'}) end,function(a) a:action({action='ch_save'}) end,'chain_overview'},
+  {'ch_done',function(a)
+   chain(a);a:action({action='ch_start',arg=1});a:action({action='ch_stop'})
+   local c=a.ctx;yes(a,c)
+  end,function(a) local r=a.state.ch.run;a:action({action='ch_done',arg={gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}}) end,'chains'},
+  {'ch_delete',function(a) chain(a);a:action({action='ch_overview',arg=1});a:action({action='ch_delete'}) end,yes,'chains'}
+ }
+ for _,route in ipairs(routes) do
+  local c=R.new();local a=App.new(c);route[2](a,c);c:advance(500);a:sample()
+  a.focus=3;a.peek={};a.banner='stale';a:arm('item',999,0)
+  route[3](a,c)
+  assert(a.page.kind==route[4] and #a.stack==0,route[1]..' destination')
+  assert(a.focus==nil and a.peek==nil and a.banner==nil and a.armed==nil and a.changed_at==a.ms,route[1]..' bookkeeping')
+  a:draw(c,R.canvas(c));local page=a.page;local state=J:encode(a.state);local hit=a.hits[#a.hits]
+  c:advance(100);a:input(c,{type='pointer',phase='down',x=hit.x+hit.w//2,y=hit.y+hit.h//2})
+  a:input(c,{type='pointer',phase='up',gesture='tap',x=hit.x+hit.w//2,y=hit.y+hit.h//2})
+  assert(a.page==page and J:encode(a.state)==state and not a.fatal,route[1]..' settle')
+ end
+ print('HOST MOCK Passed TU20 all nine replacement routes and settle')
+end
 local function action(s,arg)
  a:sample();a:event();assert(a:action({action=s,arg=arg}));draw()
 end

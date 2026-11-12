@@ -1,5 +1,5 @@
 local M=require('lib.core.model');local C=require('lib.core.const');local F=require('lib.core.format');local P=require('lib.core.pulse')
-local S=require('lib.ui.strings');local Clock=require('lib.platform.clock');local Store=require('lib.platform.store');local N=require('lib.ui.nav');local W=require('lib.ui.widgets');local Theme=require('lib.ui.theme')
+local S=require('lib.ui.strings');local Clock=require('lib.platform.clock');local Store=require('lib.platform.store');local N=require('lib.ui.nav');local W=require('lib.ui.widgets')
 local Deck=require('lib.ui.deck');local Detail=require('lib.ui.detail');local Keypad=require('lib.ui.keypad');local Completion=require('lib.ui.completion')
 local H=require('lib.core.chains')
 local Alerts=require('lib.core.alerts');local Signal=require('lib.platform.signal')
@@ -292,7 +292,7 @@ function A:input_event(ctx,ev)
  local handled=self:action(h);self:plan();self:invalidate();self.longest_input_ms=math.max(self.longest_input_ms or 0,(ctx.clock:millis()-began)&0x7fffffff);return handled
 end
 function A:draw(ctx,g)
- self.ink,self.paper=Theme.colors(self.flash)
+ self.ink,self.paper=W.colors(self.flash)
  self.hits={};g:clear(self.paper);local kind=self.page.kind
  if self.fatal then A.draw_fatal(ctx,g,self.fatal);return end
  if kind=='deck' then Deck.draw(self,g) elseif kind=='detail' then Detail.draw(self,g) elseif kind=='keypad' then Keypad.draw(self,g)

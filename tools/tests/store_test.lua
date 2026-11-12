@@ -29,3 +29,36 @@ check('TU18',function()
   a:draw(c,R.canvas(c));assert(not a.fatal)
  end
 end)
+-- Read the released implementation from this repository, without checking it out.
+-- Keep its module cache separate so both validators and stores run in this suite.
+local old_modules={}
+local old_paths={['lib.core.model']='app/lib/core/model.lua',['lib.core.const']='app/lib/core/const.lua',
+ ['lib.core.format']='app/lib/core/format.lua',['lib.core.chains']='app/lib/core/chains.lua',
+ ['lib.platform.store']='app/lib/platform/store.lua'}
+local function old_require(name)
+ if old_modules[name] then return old_modules[name] end
+ local path=assert(old_paths[name],'unexpected 0.3.1 dependency')
+ local pipe=assert(io.popen('git show 6f6346c:'..path,'r'));local source=pipe:read('a');assert(pipe:close())
+ old_modules[name]=assert(load(source,'@0.3.1/'..path,'t',setmetatable({require=old_require},{__index=_G})))()
+ return old_modules[name]
+end
+local Old=old_require('lib.core.model');local OldStore=old_require('lib.platform.store')
+local function fixture(model,chains)
+ local s=model.new(1000)
+ local function command(c) local next,status=model.command(s,c,1000);assert(status=='OK');s=next end
+ command({action='CREATE_START',dur=600,name='Compatibility'})
+ command({action='CH_SAVE',definition=chains.template('Tea',2)})
+ command({action='CH_START',id=1,rev=1})
+ s.set.app=2;s.set.style=3;s.ch.run.sil=1;s.ch.run.att=s.ch.run.cnt
+ assert(model.valid(s));return s
+end
+local function cross_load(writer,reader,model,chains)
+ local state=fixture(model,chains);local c=R.new();assert(writer.commit(c,state,model.new(1000)))
+ local expected=assert(J:encode(state));local loaded,status=reader.load(R.new({state=c.persisted}),1000)
+ assert(status=='ok' and J:encode(loaded)==expected,'state changed across versions')
+ assert(loaded.v==1 and loaded.set.app==2 and loaded.set.style==3 and loaded.ch.run.st==1 and loaded.ch.run.sil==1)
+ assert(writer.backup(c,state));c.state={bad=1};loaded,status=reader.load(c,1000)
+ assert(status=='restored' and J:encode(loaded)==expected,'TDB1 changed across versions')
+end
+check('TS12 / 0.3.1 to 0.3.2',function() cross_load(OldStore,Store,Old,old_require('lib.core.chains')) end)
+check('TS13 / 0.3.2 to 0.3.1',function() cross_load(Store,OldStore,M,require('lib.core.chains')) end)

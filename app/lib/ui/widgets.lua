@@ -1,5 +1,6 @@
 local Nav=require('lib.ui.nav');local S=require('lib.ui.strings');local Glyph=require('lib.ui.glyphs')
 local W={}
+function W.colors(flash) return flash and 0 or 15,flash and 15 or 0 end
 function W.pattern_enabled(a) return a.ctx.frontlight~=nil and a.state.set.light==1 end
 function W.count_enabled(a) return a.state.set.flash==1 or W.pattern_enabled(a) end
 function W.text(a,g,x,y,text,size,align,color,bold)

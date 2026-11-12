@@ -1,5 +1,5 @@
 package.path='tools/shim/?.lua;app/?.lua;'..package.path
-local R=require('runtime');local M=require('lib.core.model');local App=require('lib.app');local Alerts=require('lib.core.alerts');local P=require('lib.core.pulse');local Theme=require('lib.ui.theme')
+local R=require('runtime');local M=require('lib.core.model');local App=require('lib.app');local Alerts=require('lib.core.alerts');local P=require('lib.core.pulse');local W=require('lib.ui.widgets')
 local function fresh(count,pattern,n,opts)
  local c=R.new(opts);local now=c.now_value.epoch_sec;local s=M.new(now)
  for k=1,n or 1 do s=assert((M.command(s,{action='CREATE_START',dur=1,cnt=count or 3,pat=pattern or 2},now))) end
@@ -33,7 +33,7 @@ for mode=0,2 do for typ=0,1 do for _,v in ipairs({59,60,61,599,600,601}) do for 
  assert(P.seconds(mode,detail,{type=typ},v)==expected)
 end end end end;print('HOST MOCK Passed TD01')
 a,c=fresh(1);a:command('SETTINGS',nil,{values={secs=2}});advance(a,c,1150);assert(a.state.items[1].st==3);print('HOST MOCK Passed TD05')
-local ink,paper=Theme.colors(false);local x,y=Theme.colors(true);assert(ink==15 and paper==0 and x==paper and y==ink)
+local ink,paper=W.colors(false);local x,y=W.colors(true);assert(ink==15 and paper==0 and x==paper and y==ink)
 print('HOST MOCK Passed TU14')
 -- Cadence simulates an hour of a two-hour countdown; no per-second polling in minute modes.
 for mode=0,2 do

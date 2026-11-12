@@ -70,8 +70,20 @@ do
   a.page={kind='chain_run'};a:draw(c,R.canvas(c))
  end)
  case('TH13 / BUG-12',function()
-  local c=R.new();local a=App.new(c);local d=H.template('Tea',0);d.steps[1].name='';a:command('CH_SAVE',nil,{definition=d});a:action({action='ch_start',arg=1});local g=R.canvas(c);a:draw(c,g);local found=false
+  local c=R.new();local a=App.new(c);local d=H.template('Tea',0);d.steps[1].name='';d.steps[2].name='';a:command('CH_SAVE',nil,{definition=d});a:action({action='ch_start',arg=1});local g=R.canvas(c);a:draw(c,g);local found=false
   for _,v in ipairs(g.commands) do if v.method=='text' and v.args[3]=='STEP 1 OF 2' then found=true end;assert(v.args[3]~='Rounds 1 / 1') end;assert(found,'step label')
+  local function has(text)
+   local canvas=R.canvas(c);a:draw(c,canvas)
+   for _,v in ipairs(canvas.commands) do if v.method=='text' and v.args[3]==text then return true end end
+   return false
+  end
+  assert(has('Step 1') and has('Next: Step 2 3:00'))
+  assert(G.view(a.state,a.now).title=='Step 1')
+  local r=a.state.ch.run;a.banner={text='Starting now: Step 1',gen=r.gen,step=r.idx,round=r.round}
+  assert(has(a.banner.text));a.banner.step=2;assert(not has(a.banner.text));a.banner.step=1
+  a.banner.gen=r.gen+1;assert(not has(a.banner.text));a.banner.gen=r.gen;a.banner.round=2;assert(not has(a.banner.text))
+  a:action({action='ch_steps'});assert(has('> 1. Step 1') and has('2. Step 2'))
+  a:action({action='ch_template',arg='Tea'});a.page.draft.steps[1].name='';assert(has('1. Step 1'))
  end)
  assert(#failures==0,table.concat(failures,', '))
 end

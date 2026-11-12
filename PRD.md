@@ -1,5 +1,7 @@
 # Timer Deck for XTEINK — Product Requirements Document
 
+Implementation note (2026-11-12): the 0.3.2 cleanup delta is [docs/prd-0.3.2.md](docs/prd-0.3.2.md). Accepted owner overrides and DRAFT DEFAULT changes are recorded in [docs/decisions.md](docs/decisions.md), including removal of Appearance and Style, one-page Settings, Data, visible Device information and R5. This PRD remains the source of truth subject to those recorded changes and the API contract. VERIFY items still require device evidence.
+
 | | |
 | --- | --- |
 | **Product** | Timer Deck (InkApp port of the Pebble watchapp) |

@@ -1,5 +1,45 @@
 # Test report
 
+2026-11-12 — 0.3.2 host candidate, N1–N6. **HOST MOCK only**; `device_tests_run=false`, `device_verified=false`. The earlier milestone entries below are historical, including their obsolete UI and preview counts. Current behavior is described in the 0.3.2 delta and decisions.
+
+Final N6 gate: **Passed** — `make package` completed all 46 `make test` steps: pinned Lua 5.5/32 toolchain assertions; API/core lint; 30-icon reproducibility; all 32 script syntax checks; app, attention, chains, core, import, lock, runtime, store and validation Lua suites; lint negative fixtures; and all 128 preview frames with hit-map audits. `make preview` and `git diff --check` also Passed. The preview command now refreshes its script inventory before rendering, fixing the stale inventory exposed when theme.lua was removed.
+
+Resource gate: **Passed** — maximum 122 draw commands (target 400, hard limit 768); application-attributable host heap peak 466,007 bytes (<512 KiB), absolute host peak 583,229 minus harness baseline 117,222; retained growth -17,362 bytes after the cycle walk. Fixed callback proxies: input 31,200, timer 1,100, draw 13,100, load 15,200, leave 500. Lock load+draw 6,700, within the unchanged 100,000 combined ceiling. These are host instruction/allocation measurements, not device time or heap evidence.
+
+Package gate: **Passed** — `dist/timerdeck-0.3.2.xtapp`, 128,920 bytes (<200,000), 32 Lua scripts, no data section or TTF. Manifest/version, vendor pins and icon validation Passed. Decryption compared every script byte and manifest field; all 7,744 launcher pixels match. Independently compared every reported source hash and the exact source inventory to the final files, then verified the package SHA-256 and `dist/SHA256SUMS` entry. Adjacent report: `dist/timerdeck-0.3.2.json`; independent audit: `build/n6/release-verification.json`. SHA-256: `b812bad18edbf022f1b58c7a1f209ab255f794d325be60b37d31f1c3437c3f54`.
+
+N1/N2 regression evidence was captured before changing production code, then rerun after fixes on the repository’s Lua 5.5/32 build. The local logs are `build/n1/*-red.log`, `build/n1/*-green.log`, `build/n2/*-red.log` and `build/n2/*-green.log`.
+
+| Defect | Host case | Before fix | After fix |
+| --- | --- | --- | --- |
+| BUG-01 | TU17 | Failed: nil action at focus 4 | Passed |
+| BUG-02 | TH11 | Failed: step cue silenced result | Passed |
+| BUG-03 | TA16 | Failed: preview silenced completion | Passed |
+| BUG-04 | TU18 | Failed: root Back must exit | Passed |
+| BUG-05 | TU19 | Failed: missing pager | Passed |
+| BUG-06, BUG-07 | TH12 | Failed: stale Run; nil snapshot draw | Passed |
+| BUG-08, BUG-09 | TU20 | Failed: replacement bookkeeping; unchanged time prompts | Passed |
+| BUG-10, BUG-11 | TU21 | Failed: redundant enabled control; picker title | Passed |
+| BUG-12 | TH13 | Failed: step/round copy | Passed |
+| BUG-13 | TL07 | Failed: unreadable battery | Passed |
+| BUG-14 | TU25 | Failed: unified armed deletion assertion | Passed |
+| BUG-15 | TD03 | Failed: Ready allowed Peek | Passed |
+| BUG-16 | TU23 | Failed: dialog error fallback | Passed |
+
+The TH11 fixture was corrected after its first post-fix attempts: refresh the sampled clock before restarting and wait 5.3 seconds for the existing 150 ms deadline slack, asserting Finished before acknowledgment. The original red run reproduced the actual silence defect. The owner authorized correcting the fixture and continuing. No timing contract was changed for the fixture.
+
+N3 retained legacy storage and removed Appearance, retired actions/copy and stale preview files. N4 measured the menu tap from 7 copies/8 plans to 0/1, and 100 full-deck idle events from 1,020,730 allocated bytes to 80,931. The command-producing TU24 tap separately passes at most two copies and exactly one plan. Input proxy decreased 31,700 → 31,200; timer proxy 1,600 → 1,100. Measured N4 baselines were recorded; EFF-07 was omitted under its explicit three-line condition. N5 added glyphs, adaptive lists, bold hierarchy, toasts, structured decisions, chain pips, the lock progress bar and the R5 refresh sequence. TU22 and TU26 cover conditional controls, legacy rendering and the exact no-sound notice; TA17 isolates three flashes/partial restores and one final full refresh from the unchanged completion-entry refresh.
+
+N6 adds TS12/TS13: actual released 0.3.1 modules at `6f6346c`, loaded with an isolated cache, read/write the same schema-1 fixtures and TDB1 backups in both directions with 0.3.2. The fixtures contain app=2, style=3 and a Running chain with sil=1. Encoded states remain equal. Additional assertions walk every replacement route and suppress the immediate second touch, and verify unnamed step labels and all banner-token fields.
+
+Visual review: `build/previews/HOST-MOCK-contact-01.png` through `HOST-MOCK-contact-11.png`, `HOST-MOCK-contact-sheet.png`, and the per-screen PNGs named by `commands.jsonl`. Current inventory has 128 unique frames, 11 paged sheets and one overview. All are regenerated after clearing the old PNGs. Reviewed light/dark deck densities, pager pages and deletion; keypad/backspace; all chain pages; Settings with channels on/off; Data; Help pages 1–5; diagnostics; completion; glyph sheet; and all lock states. Fixed crowded chain summaries, Help body clipping under substitute font metrics, UTF-8 ellipsis splitting and duplicate fixture names, then regenerated. Diagnostics version is checked again after the N6 bump. Hit maps enforce non-overlap, on-screen geometry and at least 56×56 targets. HOST MOCK font weight, glyphs and layout still need DV17 on the reader.
+
+Decisions and corrections: all eight rows from delta §9 are recorded in decisions.md; D11 removal has explicit owner approval, and OQ1–OQ4 retain their stated defaults. The 0.3.1 manifest/PRD Appendix A contained a shortened notice despite the audit’s claim; TU26 exposed it and both now contain the exact required sentence. Renamed Help loop variables to avoid the pinned lint’s record-key false positive. The R5 change remains pending DV16. No VERIFY status changed. The first N6 package attempt passed all tests but the pinned XTCO packager rejected 33 scripts (limit 32). Moved the three-line flash-color helper into existing widgets and removed theme.lua, preserving behavior and the lock whitelist; the vendor is unchanged. See the recorded platform correction in decisions.md.
+
+Open: V01–V14; DV01 Partial from the owner’s earlier 0.3.0 report, DV02–DV20 Not run. Next: owner installs the local candidate and records those device checks. No network, upload, installation, Studio preview or push was performed during this implementation.
+
+---
+
 2026-11-12 — M0 foundation, HOST MOCK. Device tests: Not run.
 
 Passed: local archive SHA-256; Lua 5.5 / maxinteger 2147483647 / four-byte number assertions; vendored Lua 5.5 lint; API device lint; luac syntax compilation of seven app scripts; runtime self-tests (JSON and CRC, clock, timers, state, files, canvas/fonts, device/lock, sessions/overlays/errors, method receivers); shell/lock/fatal retry suite; 14 preview renders; manifest/version/icon validation; packager hash pins; decrypted script and manifest comparison; all 7,744 icon pixels compared. Package below 200 KB.
