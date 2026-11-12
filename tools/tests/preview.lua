@@ -16,3 +16,5 @@ a.page={kind='deck'};a.stack={};for n=2,10 do a:event({action='CREATE',dur=240*n
 a:action({action='menu'});emit('menu');a:action({action='settings'});emit('settings');a.page.offset=1;emit('settings-page2');a:help();emit('help');a:diagnose();a.page={kind='info'};emit('information')
 a.page={kind='deck'};a.stack={};local s=M.new(a.sec);s=M.command(s,{action='CREATE_START',dur=1,name='Tea',icon=1},a.sec);M.reconcile(s,a.sec+1);a.state=s;c.state=s;a:completion();emit('completion')
 local g=R.canvas(c);App.draw_fatal(c,g,'E-DRAW');print(assert(J:encode({name='HOST-MOCK-fatal',commands=g.commands})))
+
+for _,kind in ipairs({'recovery','blocked'}) do a.page={kind=kind};emit(kind) end

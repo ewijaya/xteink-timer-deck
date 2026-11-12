@@ -1,0 +1,14 @@
+package.path='tools/shim/?.lua;app/?.lua;'..package.path
+local R=require('runtime');local M=require('lib.core.model');local Store=require('lib.platform.store');local App=require('lib.app');local J=require('json')
+local function check(id,fn) fn();print('HOST MOCK Passed '..id) end
+check('TS01-items',function() local s=M.new();for _=1,10 do s=M.command(s,{action='CREATE',name='abcdefghijklmnop',dur=86399999},1000) end;assert(#assert(J:encode(s))<12288);assert(M.valid(s)) end)
+check('TS02',function() local c=R.new();local s=M.new(1000);assert(Store.commit(c,s,M.new()));local other=R.new({state=c.persisted});assert(J:encode(Store.load(other,1000))==J:encode(s)) end)
+check('TS03',function() local c=R.new();local a=App.new(c);c.save_failure='io_error';assert(not a:command('CREATE',nil,{dur=10}));assert(#a.state.items==0 and #c.persisted.items==0 and a.page.kind=='message') end)
+check('TS04',function() local c=R.new();local a=App.new(c);assert(a:command('CREATE_START',nil,{dur=1}));c.save_failure='io_error';c:advance(2000);assert(a.state.items[1].st==3 and a.unsaved and c.persisted.items[1].st==1);c.save_failure=nil;c:advance(1000);assert(not a.unsaved and c.persisted.items[1].st==3) end)
+check('TS05',function() local c=R.new();local a=App.new(c);a:command('CREATE',nil,{dur=10});a:command('CREATE',nil,{dur=20});assert(not c.storage:exists('deck.bak'));c:advance(2000);assert(#assert(Store.read_backup(c)).items==2);a:command('CREATE',nil,{dur=30});a:leave(c);assert(#assert(Store.read_backup(c)).items==3) end)
+check('TS06',function() local c=R.new();local s=M.new(1000);s=M.command(s,{action='CREATE_START',dur=10},1000);assert(Store.backup(c,s));local restored,status=Store.load(c,1037);assert(status=='restored');M.reconcile(restored,1037);assert(restored.items[1].st==3) end)
+check('TS07',function() local c=R.new({state={bad=1}});local a=App.new(c);assert(a.mode=='recovery' and c.save_attempts==0 and c.state.bad==1) end)
+check('TS08',function() local c=R.new({state={v=2,secret=1}});local a=App.new(c);a:leave(c);assert(a.mode=='blocked' and c.save_attempts==0 and c.state.secret==1) end)
+check('TS09',function() local c=R.new();local a=App.new(c);a:command('CREATE',nil,{dur=10});c:advance(2000);assert(c.storage:exists('deck.bak'));a:command('ERASE');assert(#a.state.items==0) end)
+check('TS10',function() local c=R.new();local a=App.new(c);local saved=c.save_attempts;local fonts=#c.font_requests;c:call('on_draw',function(ctx) a:draw(ctx,R.canvas(ctx)) end);assert(c.alive,c.error);assert(c.save_attempts==saved and #c.font_requests==fonts) end)
+check('TS11',function() local c=R.new();local a=App.new(c);a:command('CREATE',nil,{dur=10});c:call('crash',function() error('injected') end);local next=R.new({state=c.persisted});assert(#assert(Store.load(next,1000)).items==1) end)

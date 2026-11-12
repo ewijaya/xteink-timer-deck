@@ -19,7 +19,7 @@ M1:
 
 M2–M8 continuation (2026-11-12):
 - [x] M2: touch/key foreground screens, forms, settings/help, 30 vector icons, previews
-- [ ] M3: validation/recovery, atomic save failures, backup, storage suites TS01–TS11
+- [x] M3: validation/recovery, atomic save failures, backup, storage suites TS01–TS11
 - [ ] M4: alert queue/light/flash, coverage, pulse/cadence, TA/TD suites
 - [ ] M5: read-only adaptive lock page, TL01–TL06
 - [ ] M6: chain definitions, commands, screens, TH01–TH10
