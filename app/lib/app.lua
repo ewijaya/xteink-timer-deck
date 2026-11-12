@@ -25,7 +25,7 @@ function A:push(page)
 end
 function A:pop()
  local old=self.page.kind
- self.page=table.remove(self.stack) or {kind='deck'};self.focus=nil;self.peek=nil;self.changed_at=self.ms;self:invalidate(self.partials>=12)
+ self.page=table.remove(self.stack) or {kind=(self.mode=='recovery' or self.mode=='blocked') and self.mode or 'deck'};self.focus=nil;self.peek=nil;self.changed_at=self.ms;self:invalidate(self.partials>=12)
  if old~='deck' and old~='detail' then self.ctx.gc:collect() end
 end
 function A:message(text)
@@ -143,10 +143,11 @@ function A:help()
  self:push({kind='help'})
 end
 function A:action(h)
- local action,arg=h.action,h.arg;local p=self.page
+ local action,arg=h.action,h.arg;local p=self.page;if not action then return false end
  if action=='sync' or action=='import' or action=='export' then return require('lib.ui.sync').action(self,h) end
  if action:sub(1,3)=='ch_' or action=='chains' or action=='chain_run' then return require('lib.ui.chains').action(self,h) end
  if action=='back' then
+  if (self.mode=='recovery' or self.mode=='blocked') and p.kind==self.mode and #self.stack==0 then return false end
   if p.kind=='deck' then
    local running=self.state.ch.run.st==1;for _,i in ipairs(self.state.items) do if i.st==1 then running=true end end
    if running and not (self.lock_default and self.ctx.device.lock_timer) and self.ctx.dialog then
@@ -233,7 +234,7 @@ function A:input(ctx,ev)
  local began=ctx.clock:millis()
  self:sample()
  if self.swallow then if ev.phase=='up' or ev.phase=='cancel' then self.swallow=nil end;return true end
- if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';Signal.stop(self);self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st~=0 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end
+ if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';local preview=self.signal.preview;Signal.stop(self);if preview then self:invalidate(true);return true end;self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st==3 or r.st==1 and r.cue==1 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end
  self:event()
  if self.fatal then return false end
  local h=N.input(self,ev);if h=='consumed' then return true elseif h=='redraw' then self:invalidate();return true elseif not h then return false end

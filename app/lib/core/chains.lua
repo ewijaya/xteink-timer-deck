@@ -31,7 +31,7 @@ function H.remaining(r,now)
  return v+pass*(r.snap.rounds-r.round)
 end
 local function next_step(r,at,paused,api)
- r.ev=at;r.idx=r.idx+1
+ r.att=0;r.sil=0;r.ev=at;r.idx=r.idx+1
  if r.idx>#r.snap.steps then r.idx=1;r.round=r.round+1 end
  if r.round>r.snap.rounds then r.round=r.snap.rounds;r.idx=#r.snap.steps;r.st=3;r.anc=0;r.cue=0;return end
  r.anc=paused and r.snap.steps[r.idx].sec or assert(api.add_time(at,r.snap.steps[r.idx].sec));r.cue=1
@@ -85,7 +85,7 @@ function H.command(s,c,now,api)
  if action=='CH_DONE' then if r.st<3 then return 'INVALID' end;s.ch.run={st=0,gen=r.gen};return 'OK' end
  if action=='CH_ATTEMPT' then if r.st~=3 or r.sil==1 or not now or now<r.ev or now-r.ev>C.LATE_SEC or r.att>=r.cnt then return 'INVALID' end;r.att=r.att+1;return 'OK' end
  if action=='CH_CUE' then if r.st~=1 or r.cue~=1 then return 'INVALID' end;r.cue=0;return 'OK' end
- if action=='CH_SILENCE' then r.cue=0;r.att=r.cnt;r.sil=1;return 'OK' end
+ if action=='CH_SILENCE' then if r.st==1 then r.cue=0 elseif r.st==3 then r.att=r.cnt;r.sil=1 else return 'INVALID' end;return 'OK' end
  if r.st~=1 and r.st~=2 then return 'INVALID' end
  if r.gen==C.MAX_INT then return 'OVERFLOW' end
  local paused=r.st==2

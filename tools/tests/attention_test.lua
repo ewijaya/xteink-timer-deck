@@ -68,3 +68,13 @@ end
 failed_ctx:advance(1000);assert(failed_once and failed_app.unsaved and failed_app.state.items[1].att==0 and not failed_app.signal)
 advance(failed_app,failed_ctx,8000);local attempts=0;for _,call in ipairs(failed_ctx.light_calls) do if call[1]=='set' then attempts=attempts+1 end end
 assert(attempts==2 and failed_app.state.items[1].att==2);print('HOST MOCK failed ATTEMPT save preserves the physical attempt budget')
+-- TA16: dismissing a preview cannot consume a real completion's attempts.
+do
+ local a,c=fresh(5,0);advance(a,c,1800);assert(a.state.items[1].att==1 and not a.signal)
+ local before=require('json'):encode(a.state.items);a:preview_pattern(0)
+ a:input(c,{type='pointer',phase='down',x=1,y=1})
+ assert(require('json'):encode(a.state.items)==before,'TA16 preview silenced completion')
+ a:input(c,{type='pointer',phase='up',x=1,y=1});advance(a,c,3000)
+ assert(a.state.items[1].att>1 and a.state.items[1].sil==0)
+ print('HOST MOCK Passed TA16')
+end

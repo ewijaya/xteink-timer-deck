@@ -10,7 +10,7 @@ function N.input(a,ev)
   local last=a.keys[ev.key];if last and ((ms-last)&0x7fffffff)<C.KEY_DEBOUNCE_MS then return 'consumed' end;a.keys[ev.key]=ms
   if ev.key=='back' then return {action='back'} end
   if ev.key=='down' then
-   if a.page.kind=='deck' and a.deck_entries and #a.deck_entries>0 then
+   if a.page.kind=='deck' and a.deck_entries then
     local _,selected=require('lib.core.model').find(a.state,a.state.sel)
     a.focus=a.focus and a.focus%(#a.deck_entries+3)+1 or (selected and selected+(a.chain_entry and 1 or 0)) or 1
     if a.focus<=#a.deck_entries then a.page.offset=(a.focus-1)//a.deck_per end

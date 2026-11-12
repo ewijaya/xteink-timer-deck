@@ -45,3 +45,16 @@ for n=1,4 do s.rc[n]={dig=-2147483647-1,len=16384,n=15} end
 assert(M.valid(s));local bytes=#assert(J:encode(s));assert(bytes<=12288,bytes)
 local function depth(t,n) local max=n;for _,v in pairs(t) do if type(v)=='table' then max=math.max(max,depth(v,n+1)) end end;return max end
 assert(depth(s,0)<=5);local store=R.new({state=s});assert(store:save_state());assert(J:encode(s)==J:encode(store.persisted));print('HOST MOCK TS01 maximal widths '..bytes..' bytes, depth '..depth(s,0))
+-- TH11: acknowledging the step cue leaves the final alert budget intact.
+do
+ local c=R.new();local a=App.new(c);local d=H.template('Tea',0);d.steps[1].sec=2;d.steps[2].sec=3
+ a:command('CH_SAVE',nil,{definition=d});a:command('CH_START',{id=1},{rev=1});c:advance(2000)
+ assert(a.signal and a.state.ch.run.idx==2)
+ a:input(c,{type='pointer',phase='down',x=1,y=1});a:input(c,{type='pointer',phase='up',x=1,y=1})
+ assert(a.state.ch.run.sil==0 and a.state.ch.run.att==0,'TH11 step cue silenced result')
+ local lights=#c.light_calls;c:advance(10000)
+ assert(a.state.ch.run.st==3 and a.state.ch.run.att==a.state.ch.run.cnt and a.state.ch.run.sil==0 and #c.light_calls>lights)
+ a:sample();a:command('CH_START',{id=1},{rev=1});c:advance(5300);assert(a.state.ch.run.st==3 and a.signal)
+ a:input(c,{type='pointer',phase='down',x=1,y=1});assert(a.state.ch.run.sil==1)
+ print('HOST MOCK Passed TH11')
+end

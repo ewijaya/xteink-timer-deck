@@ -36,3 +36,21 @@ c:advance(300);a:input(c,{type='key',key='down',phase='up'});assert(a.focus~=foc
 a.page={kind='deck'};a.stack={};for n=1,10 do a:event({action='CREATE',type=n%2,dur=100,icon=n}) end;draw();assert(#a.state.items==10)
 local id,gen=a.state.items[1].id,a.state.items[1].gen;a:command('DELETE',{id=id,gen=gen});a:command('CREATE',nil,{dur=100});local _,result=M.command(a.state,{action='PRIMARY',id=id,gen=gen},a.sec);assert(result=='STALE')
 print('HOST MOCK TU01-TU13 foreground scope passed; alert/appearance extensions remain later gates')
+-- TU17: every deck key stop resolves to the highlighted control, including empty.
+do
+ local Nav=require('lib.ui.nav')
+ for _,count in ipairs({0,1,10}) do
+  local cc=R.new();local aa=App.new(cc)
+  for _=1,count do aa:command('CREATE',nil,{dur=100}) end
+  aa:draw(cc,R.canvas(cc))
+  for n=1,2*(count+3) do
+   aa.ms=aa.ms+300;Nav.input(aa,{type='key',key='down',phase='up'})
+   local focus=assert(aa.focus);aa.ms=aa.ms+300
+   local h=Nav.input(aa,{type='key',key='up',phase='up'})
+   assert(h and h.action,'TU17 nil action at focus '..focus)
+   assert(focus<=count and h.id==aa.deck_entries[focus].id or focus>count and h.action==({'new_timer','chains','menu'})[focus-count])
+  end
+  assert(aa:action({})==false,'TU17 nil action guard')
+ end
+ print('HOST MOCK Passed TU17')
+end

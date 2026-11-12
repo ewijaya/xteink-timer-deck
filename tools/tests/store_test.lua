@@ -21,3 +21,11 @@ check('TS07-fresh-save-failure',function()
  local c=R.new({state={bad=1}});local a=App.new(c);a:action({action='fresh'});local f=c.overlay.fn;c.overlay=nil;c.save_failure='io_error';f(c,true)
  assert(a.mode=='recovery' and c.state.bad==1 and c.persisted.bad==1);a:leave(c);assert(c.state.bad==1)
 end)
+check('TU18',function()
+ for _,state in ipairs({{bad=1},{v=2}}) do
+  local c=R.new({state=state});local a=App.new(c);local kind=a.page.kind
+  assert(a:action({action='back'})==false,'TU18 root Back must exit')
+  assert(a.page.kind==kind);a:help();a:action({action='back'});assert(a.page.kind==kind)
+  a:draw(c,R.canvas(c));assert(not a.fatal)
+ end
+end)
