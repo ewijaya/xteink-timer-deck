@@ -1,4 +1,5 @@
 local C=require('lib.core.const');local F=require('lib.core.format');local M=require('lib.core.model');local H=require('lib.core.chains')
+local S=C.COPY;local E=S.import_errors
 local I={}
 local function trim(s) return (s:gsub('^%s+',''):gsub('%s+$','')) end
 local function number(s,lo,hi)
@@ -33,16 +34,16 @@ local function named(s,names,default,lo)
 end
 local function icon(s)
  if s==nil or s=='' then return 0 end
- local n=number(s,0,30);if n then return n end
+ local n=number(s,0,C.ICON_COUNT);if n then return n end
  return named(s,C.ICON_NAMES,0,1)
 end
 function I.parse(text,settings)
- if type(text)~='string' or #text>16384 then return nil,{'File exceeds 16384 bytes'} end
- if not utf8.len(text) then return nil,{'Invalid UTF-8'} end
+ if type(text)~='string' or #text>16384 then return nil,{E.size} end
+ if not utf8.len(text) then return nil,{E.utf8} end
  local records,errors={},{};local active;local count=0
- local function error_line(line,why) errors[#errors+1]='Line '..line..': '..why end
+ local function error_line(line,why) errors[#errors+1]=S.line..line..': '..why end
  local function close()
-  if active and (#active.definition.steps<2 or not H.total(active.definition)) then error_line(active.line,'Chain needs 2–10 steps and a valid total') end;active=nil
+  if active and (#active.definition.steps<2 or not H.total(active.definition)) then error_line(active.line,E.chain) end;active=nil
  end
  local input=text:gsub('\r\n','\n');if input:sub(-1)=='\n' then input=input:sub(1,-2) end
  for raw in (input..'\n'):gmatch('(.-)\n') do
@@ -54,21 +55,21 @@ function I.parse(text,settings)
    if kind~='step' then close() end
    if not name then error_line(count,'Invalid name')
    elseif kind=='timer' or kind=='step' then
-    local dur=f[3] and I.duration(f[3]);local ic=icon(f[4]);local pat=named(f[5],C.PATTERNS,settings.pat,0);local cnt=optional_number(f[6],1,5,settings.cnt)
-    if not dur or not ic or not pat or not cnt or #f>(kind=='timer' and 6 or 5) then error_line(count,'Invalid duration, icon, alert or count')
+    local dur=f[3] and I.duration(f[3]);local ic=icon(f[4]);local pat=named(f[5],C.PATTERNS,settings.pat,0);local cnt=optional_number(f[6],C.COUNT_MIN,C.COUNT_MAX,settings.cnt)
+    if not dur or not ic or not pat or not cnt or #f>(kind=='timer' and 6 or 5) then error_line(count,E.fields)
     elseif kind=='timer' then records[#records+1]={line=count,action='CREATE',type=0,name=name,dur=dur,icon=ic,pat=pat,cnt=cnt}
-    elseif not active then error_line(count,'Step without a chain')
-    elseif #active.definition.steps>=10 then error_line(count,'This chain has 10 steps')
+    elseif not active then error_line(count,E.orphan)
+    elseif #active.definition.steps>=C.CHAIN_STEPS then error_line(count,S.chain_max)
     else local d=active.definition;local id=d.next_step;d.steps[#d.steps+1]={id=id,name=name,sec=dur,icon=ic,pat=pat};d.next_step=id+1 end
    elseif kind=='stopwatch' then
-    local ic=icon(f[3]);if not ic or #f>3 then error_line(count,'Invalid stopwatch') else records[#records+1]={line=count,action='CREATE',type=1,name=name,icon=ic} end
+    local ic=icon(f[3]);if not ic or #f>3 then error_line(count,E.watch) else records[#records+1]={line=count,action='CREATE',type=1,name=name,icon=ic} end
    elseif kind=='chain' then
-    local rounds=optional_number(f[3],1,9,1);local ic=icon(f[4])
-    if not rounds or not ic or #f>4 then error_line(count,'Invalid chain') else active={line=count,action='CH_SAVE',definition={name=name,icon=ic,rounds=rounds,next_step=1,steps={}}};records[#records+1]=active end
-   else error_line(count,'Unknown kind') end
+    local rounds=optional_number(f[3],1,C.CHAIN_ROUNDS,1);local ic=icon(f[4])
+    if not rounds or not ic or #f>4 then error_line(count,E.definition) else active={line=count,action='CH_SAVE',definition={name=name,icon=ic,rounds=rounds,next_step=1,steps={}}};records[#records+1]=active end
+   else error_line(count,E.kind) end
   end
  end
- close();if #records==0 and #errors==0 then errors[1]='No definitions found' end
+ close();if #records==0 and #errors==0 then errors[1]=E.empty end
  if #errors>0 then return nil,errors end;return records
 end
 function I.propose(s,text,digest,now)
@@ -77,10 +78,10 @@ function I.propose(s,text,digest,now)
  local candidate=M.copy(s);local result={}
  for _,record in ipairs(records) do
   local next_state,status=M.command(candidate,record,now)
-  if status~='OK' then return nil,'Line '..record.line..': '..status end
-  candidate=next_state;result[#result+1]='Line '..record.line..': OK'
+  if status~='OK' then return nil,S.line..record.line..': '..status end
+  candidate=next_state;result[#result+1]=S.line..record.line..': OK'
  end
- table.insert(candidate.rc,1,{dig=digest,len=#text,n=#records});if #candidate.rc>4 then table.remove(candidate.rc) end
+ table.insert(candidate.rc,1,{dig=digest,len=#text,n=#records});if #candidate.rc>C.RECEIPTS then table.remove(candidate.rc) end
  assert(M.valid(candidate));return candidate,table.concat(result,'\n')
 end
 function I.export(s)

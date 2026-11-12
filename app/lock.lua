@@ -1,7 +1,7 @@
-local view,now,fonts,digits,clock_text
+local view,now,fonts,digits,clock_text,copy
 function on_load(ctx)
  local ok=pcall(function()
-  local F=require('lib.core.format');local G=require('lib.core.glance');digits=require('lib.ui.digits')
+  copy=require('lib.core.const').COPY;local F=require('lib.core.format');local G=require('lib.core.glance');digits=require('lib.ui.digits')
   now=ctx.clock:now();clock_text=F.clock(now,true);fonts={small=ctx.fonts:size(22),medium=ctx.fonts:size(32),large=ctx.fonts:size(40)}
   view=G.view(ctx.state,now);ctx.lock:set_interval(view.interval)
   if view.full then ctx:invalidate('full') end
@@ -15,7 +15,7 @@ function on_draw(ctx,g)
   g:clear(paper)
   g:text(20,25,clock_text or '--:--',{font=fonts and fonts.small or ctx.fonts.small,color=ink})
   local battery=ctx.device:battery();g:text(460,25,battery.percent..'%',{font=fonts and fonts.small or ctx.fonts.small,color=ink,align='right'})
-  g:text(240,135,view and view.title or 'Timer Deck',{font=fonts and fonts.large or ctx.fonts.large,color=ink,align='center'})
+  g:text(240,135,view and view.title or copy and copy.lock_title or 'Timer Deck',{font=fonts and fonts.large or ctx.fonts.large,color=ink,align='center'})
   if not view then return end
   if view.digits then
    local height=160;while digits.width(view.digits,height)>440 do height=height-8 end

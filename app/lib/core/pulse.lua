@@ -32,7 +32,7 @@ function P.plan(s,now,screen,last,extra,selected)
   end
   seconds(math.max(0,C.CHECKPOINT_SEC-(now-last)))
  end
- if r.st==3 and r.sil~=1 and now>=r.ev and now-r.ev<600 then seconds(600-(now-r.ev)) end
+ if r.st==3 and r.sil~=1 and now>=r.ev and now-r.ev<C.AUTO_RESET_SEC then seconds(C.AUTO_RESET_SEC-(now-r.ev)) end
  local reset=M.auto_reset_due(s);if reset then seconds(math.max(0,reset-now)) end
  for _,i in ipairs(s.items) do if i.st==1 then seconds(math.max(0,C.CHECKPOINT_SEC-(now-last)));break end end
  if extra then offer(extra) end

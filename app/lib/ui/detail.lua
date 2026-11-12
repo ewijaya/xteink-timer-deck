@@ -16,8 +16,8 @@ function D.draw(a,g)
  if hint<=10 then g:rect(150,401,180,36,{color=a.ink,fill=true});W.text(a,g,240,408,S.last10,22,'center',a.paper)
  elseif hint<=25 then W.text(a,g,240,408,S.last25,22,'center')
  else W.text(a,g,240,408,i.lim==1 and S.limit or (i.type==1 and S.count_up..' ' or '')..S.states[i.st+1],22,'center') end
- W.text(a,g,240,522,i.type==0 and 'of '..F.duration(i.dur) or S.count_up,26,'center')
- if i.st==1 then W.text(a,g,240,560,(i.type==0 and 'ends ' or 'started ')..F.moment(i.anc,a.now),26,'center') end
+ W.text(a,g,240,522,i.type==0 and S.of..F.duration(i.dur) or S.count_up,26,'center')
+ if i.st==1 then W.text(a,g,240,560,(i.type==0 and S.ends or S.started)..F.moment(i.anc,a.now),26,'center') end
  if i.type==0 and i.st==1 then W.text(a,g,240,600,a:coverage(i),22,'center') end
  if a.warning then W.text(a,g,240,640,W.fit(a,a.warning,460,22),22,'center') end
  W.button(a,g,16,676,292,112,S.primary[i.st+1],'primary',nil,i.id,i.gen,true,32)

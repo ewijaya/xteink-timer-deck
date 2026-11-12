@@ -11,7 +11,7 @@ local function open(a,d,id,rev)
  a:push({kind='chain_edit',draft=M.copy(d),original=M.copy(d),id=id,rev=rev,chain_draft=true})
 end
 local function step(a,idx)
- local e=editor(a);local d=e.draft;local v=idx and d.steps[idx] or {id=d.next_step,name='',icon=0,sec=#d.steps>0 and d.steps[#d.steps].sec or 10,pat=a.state.set.pat}
+ local e=editor(a);local d=e.draft;local v=idx and d.steps[idx] or {id=d.next_step,name='',icon=0,sec=#d.steps>0 and d.steps[#d.steps].sec or C.DEFAULT_COUNTDOWN,pat=a.state.set.pat}
  a:push({kind='chain_step',draft=M.copy(v),original=M.copy(v),index=idx,chain_draft=true})
 end
 function U.action(a,h)
@@ -21,7 +21,7 @@ function U.action(a,h)
  elseif action=='ch_arm' then a.chain_delete=arg;if a.settle then a.settle:cancel() end;a.settle=a.ctx:after(5000,function() a:callback(function() a.settle=nil;a.chain_delete=nil;a:invalidate() end) end)
  elseif action=='ch_keep' then a.chain_delete=nil
  elseif action=='ch_delete_inline' then local def=H.find(a.state,arg);if def and a:command('CH_DELETE',nil,{id=def.id,rev=def.rev}) then a.chain_delete=nil end
- elseif action=='ch_new' then if #a.state.ch.saved>=5 then a:message(S.chain_full) else a:push({kind='chain_new'}) end
+ elseif action=='ch_new' then if #a.state.ch.saved>=C.CHAIN_CAPACITY then a:message(S.chain_full) else a:push({kind='chain_new'}) end
  elseif action=='ch_template' then open(a,H.template(arg,a.state.set.pat))
  elseif action=='ch_from_new' then open(a,H.template('',a.state.set.pat));a:push({kind='chain_from',selected={}})
  elseif action=='ch_overview' then a:push({kind='chain_overview',id=arg})
@@ -30,8 +30,8 @@ function U.action(a,h)
  elseif action=='ch_save' then
   if #p.draft.steps<2 then a:message(S.chain_min)
   elseif a:command('CH_SAVE',nil,{id=p.id,rev=p.rev,definition=p.draft}) then local id=p.id or a.state.ch.last;a.stack={};a.page={kind='chain_overview',id=id} end
- elseif action=='ch_rounds' then p.draft.rounds=p.draft.rounds%9+1
- elseif action=='ch_add' then if #p.draft.steps>=10 then a:message(S.chain_max) else a:push({kind='chain_add'}) end
+ elseif action=='ch_rounds' then p.draft.rounds=p.draft.rounds%C.CHAIN_ROUNDS+1
+ elseif action=='ch_add' then if #p.draft.steps>=C.CHAIN_STEPS then a:message(S.chain_max) else a:push({kind='chain_add'}) end
  elseif action=='ch_new_step' then step(a)
  elseif action=='ch_step' then step(a,arg)
  elseif action=='ch_step_save' then
@@ -46,7 +46,7 @@ function U.action(a,h)
   local found;for n,id in ipairs(p.selected) do if id==arg then found=n end end
   if found then table.remove(p.selected,found) else p.selected[#p.selected+1]=arg end
  elseif action=='ch_add_selected' then
-  local e=editor(a);if #p.selected+#e.draft.steps>10 then a:message(S.chain_max) else
+  local e=editor(a);if #p.selected+#e.draft.steps>C.CHAIN_STEPS then a:message(S.chain_max) else
    for _,id in ipairs(p.selected) do local i=M.find(a.state,id);if i and i.type==0 then local d=e.draft;d.steps[#d.steps+1]={id=d.next_step,name=i.name,icon=i.icon,sec=i.dur,pat=i.pat};d.next_step=d.next_step+1 end end
    while a.page~=e do a:pop() end
   end
@@ -103,12 +103,12 @@ function U.draw(a,g)
   W.text(a,g,240,180,S.steps..' '..r.idx..' / '..#r.snap.steps,26,'center');W.text(a,g,240,218,W.fit(a,step.name,330,26),26,'center')
   local height=#time>5 and 64 or 96;Digits.draw(g,time,(480-Digits.width(time,height))//2,270,height,a.ink)
   W.text(a,g,240,375,P.seconds(a.state.set.secs,true,{type=0},value or 0) and 'SEC' or 'MIN',22,'center');W.text(a,g,240,410,S.rounds..' '..r.round..' / '..r.snap.rounds,22,'center');W.text(a,g,240,440,days,22,'center')
-  local next_step=r.snap.steps[r.idx%#r.snap.steps+1];W.text(a,g,240,540,W.fit(a,r.idx==#r.snap.steps and r.round==r.snap.rounds and S.last_step or 'Next: '..next_step.name..' '..F.duration(next_step.sec),440,26),26,'center')
-  if r.away>0 then W.text(a,g,240,590,r.away..' steps elapsed while away',22,'center') elseif a.banner then W.text(a,g,240,590,W.fit(a,a.banner,440,22),22,'center') end
+  local next_step=r.snap.steps[r.idx%#r.snap.steps+1];W.text(a,g,240,540,W.fit(a,r.idx==#r.snap.steps and r.round==r.snap.rounds and S.last_step or S.next..next_step.name..' '..F.duration(next_step.sec),440,26),26,'center')
+  if r.away>0 then W.text(a,g,240,590,r.away..S.elapsed_away,22,'center') elseif a.banner then W.text(a,g,240,590,W.fit(a,a.banner,440,22),22,'center') end
   W.button(a,g,16,676,160,112,r.st==1 and S.pause or S.resume,'ch_primary',t,nil,nil,true)
   W.button(a,g,184,676,180,112,S.restart,'ch_restart',t,nil,nil,false,22);W.button(a,g,372,676,92,112,'Skip','ch_skip',t,nil,nil,false,22);return
  elseif kind=='chain_result' and r.st~=0 then
-  W.text(a,g,240,200,r.snap.name,40,'center');W.text(a,g,240,300,#r.snap.steps*r.snap.rounds..' '..S.steps,32,'center');W.text(a,g,240,370,r.skipped..' skipped',26,'center')
+  W.text(a,g,240,200,r.snap.name,40,'center');W.text(a,g,240,300,#r.snap.steps*r.snap.rounds..' '..S.steps,32,'center');W.text(a,g,240,370,r.skipped..S.skipped,26,'center')
   W.button(a,g,16,580,448,88,S.again,'ch_start',r.id);W.button(a,g,16,696,448,88,S.done,'ch_done',token(r));return
  end
  W.rows(a,g,rows,bottom and 5 or 6)

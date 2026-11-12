@@ -63,8 +63,8 @@ function M.valid(s)
    end
   end
   assert(s.sel==0 or ids[s.sel],'selection')
-  assert(dense(s.rc,C.RECEIPTS));for _,r in ipairs(s.rc) do assert(integer(r.dig,-2147483647-1,C.MAX_INT) and integer(r.len,0,16384) and integer(r.n,1,15)) end
-  assert(dense(s.ch.saved,5));H.valid(s.ch)
+  assert(dense(s.rc,C.RECEIPTS));for _,r in ipairs(s.rc) do assert(integer(r.dig,-2147483647-1,C.MAX_INT) and integer(r.len,0,16384) and integer(r.n,1,C.CAPACITY+C.CHAIN_CAPACITY)) end
+  assert(dense(s.ch.saved,C.CHAIN_CAPACITY));H.valid(s.ch)
  end
  local ok,reason=pcall(check);return ok,ok and nil or tostring(reason)
 end

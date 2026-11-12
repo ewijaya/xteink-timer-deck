@@ -5,22 +5,22 @@ function H.find(s,id) for n,d in ipairs(s.ch.saved) do if d.id==id then return d
 function H.total(d)
  local sum=0
  for _,step in ipairs(d.steps or {}) do if not int(step.sec,1,C.MAX_SEC) or step.sec>C.MAX_SEC-sum then return nil end;sum=sum+step.sec end
- if not int(d.rounds,1,9) or sum>C.MAX_SEC//d.rounds then return nil end
+ if not int(d.rounds,1,C.CHAIN_ROUNDS) or sum>C.MAX_SEC//d.rounds then return nil end
  return sum*d.rounds
 end
 local function definition(d)
  assert(int(d.id,1,C.MAX_INT) and int(d.rev,1,C.MAX_INT) and int(d.next_step,1,C.MAX_INT))
- assert(F.name(d.name)==d.name and int(d.icon,0,30) and #d.steps>=2 and #d.steps<=10 and H.total(d))
+ assert(F.name(d.name)==d.name and int(d.icon,0,C.ICON_COUNT) and #d.steps>=2 and #d.steps<=C.CHAIN_STEPS and H.total(d))
  local entries=0;for k in pairs(d.steps) do assert(int(k,1,#d.steps));entries=entries+1 end;assert(entries==#d.steps)
- local seen={};for _,v in ipairs(d.steps) do assert(int(v.id,1,d.next_step-1) and not seen[v.id] and F.name(v.name)==v.name and int(v.icon,0,30) and int(v.pat,0,3));seen[v.id]=true end
+ local seen={};for _,v in ipairs(d.steps) do assert(int(v.id,1,d.next_step-1) and not seen[v.id] and F.name(v.name)==v.name and int(v.icon,0,C.ICON_COUNT) and int(v.pat,0,#C.PATTERNS-1));seen[v.id]=true end
 end
 function H.valid(ch)
- assert(type(ch)=='table' and int(ch.last,0,C.MAX_INT) and #ch.saved<=5)
+ assert(type(ch)=='table' and int(ch.last,0,C.MAX_INT) and #ch.saved<=C.CHAIN_CAPACITY)
  local ids={};for _,d in ipairs(ch.saved) do definition(d);assert(d.id<=ch.last and not ids[d.id]);ids[d.id]=true end
  local r=ch.run;assert(type(r)=='table' and int(r.st,0,4))
  if r.st==0 then assert(r.gen==nil or int(r.gen,0,C.MAX_INT));return end
  definition(r.snap);assert(r.id==r.snap.id and int(r.gen,1,C.MAX_INT) and int(r.idx,1,#r.snap.steps) and int(r.round,1,r.snap.rounds))
- assert(int(r.anc,0,C.MAX_INT) and int(r.ev,0,C.MAX_INT) and int(r.skipped,0,90) and int(r.away,0,90) and int(r.pat,0,3) and int(r.cnt,1,5) and int(r.att,0,r.cnt) and int(r.cue,0,1))
+ assert(int(r.anc,0,C.MAX_INT) and int(r.ev,0,C.MAX_INT) and int(r.skipped,0,C.CHAIN_STEPS*C.CHAIN_ROUNDS) and int(r.away,0,C.CHAIN_STEPS*C.CHAIN_ROUNDS) and int(r.pat,0,#C.PATTERNS-1) and int(r.cnt,C.COUNT_MIN,C.COUNT_MAX) and int(r.att,0,r.cnt) and int(r.cue,0,1))
  assert(r.sil==nil or r.sil==0 or r.sil==1);assert(r.st~=1 or r.anc>0);assert(r.st~=2 or r.anc>=1 and r.anc<=r.snap.steps[r.idx].sec);assert(r.st<3 or r.anc==0)
 end
 function H.value(r,now) if r.st==1 then return now and math.max(0,r.anc-now) or nil elseif r.st==2 then return r.anc else return 0 end end
@@ -39,7 +39,7 @@ end
 function H.advance(s,now,api)
  local r=s.ch.run;if r.st~=1 then return false end
  local count=0
- while r.st==1 and r.anc<=now do local boundary=r.anc;next_step(r,boundary,false,api);count=count+1;assert(count<=90) end
+ while r.st==1 and r.anc<=now do local boundary=r.anc;next_step(r,boundary,false,api);count=count+1;assert(count<=C.CHAIN_STEPS*C.CHAIN_ROUNDS) end
  if count>0 then r.away=count>1 and count or 0;if count>1 or now-r.ev>C.LATE_SEC then r.cue=0 end;return true end
  return false
 end
@@ -63,7 +63,7 @@ function H.command(s,c,now,api)
  if action=='CH_SAVE' then
   local value=api.copy(c.definition);if type(value)~='table' then return 'INVALID' end
   if c.id then if not d or d.rev~=c.rev then return 'STALE' end;if r.id==d.id and (r.st==1 or r.st==2) then return 'ACTIVE' end;if d.rev==C.MAX_INT then return 'OVERFLOW' end;value.id=d.id;value.rev=d.rev+1
-  else if #s.ch.saved>=5 then return 'CHAIN_FULL' end;if s.ch.last==C.MAX_INT then return 'OVERFLOW' end;s.ch.last=s.ch.last+1;value.id=s.ch.last;value.rev=1 end
+  else if #s.ch.saved>=C.CHAIN_CAPACITY then return 'CHAIN_FULL' end;if s.ch.last==C.MAX_INT then return 'OVERFLOW' end;s.ch.last=s.ch.last+1;value.id=s.ch.last;value.rev=1 end
   if not pcall(definition,value) then return 'INVALID' end
   s.ch.saved[n or #s.ch.saved+1]=value;return 'OK'
  elseif action=='CH_DUPLICATE' then
@@ -83,7 +83,7 @@ function H.command(s,c,now,api)
  end
  if r.st==0 or c.gen~=r.gen or c.step~=r.snap.steps[r.idx].id or c.round~=r.round then return 'STALE' end
  if action=='CH_DONE' then if r.st<3 then return 'INVALID' end;s.ch.run={st=0,gen=r.gen};return 'OK' end
- if action=='CH_ATTEMPT' then if r.st~=3 or r.sil==1 or not now or now<r.ev or now-r.ev>60 or r.att>=r.cnt then return 'INVALID' end;r.att=r.att+1;return 'OK' end
+ if action=='CH_ATTEMPT' then if r.st~=3 or r.sil==1 or not now or now<r.ev or now-r.ev>C.LATE_SEC or r.att>=r.cnt then return 'INVALID' end;r.att=r.att+1;return 'OK' end
  if action=='CH_CUE' then if r.st~=1 or r.cue~=1 then return 'INVALID' end;r.cue=0;return 'OK' end
  if action=='CH_SILENCE' then r.cue=0;r.att=r.cnt;r.sil=1;return 'OK' end
  if r.st~=1 and r.st~=2 then return 'INVALID' end

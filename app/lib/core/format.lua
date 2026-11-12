@@ -12,7 +12,7 @@ end
 function F.label(i)
  if i.name~='' then return i.name end
  if i.icon>0 then return C.ICON_NAMES[i.icon] end
- return string.format('%s %02d',i.type==0 and 'TIMER' or 'WATCH',i.num)
+ return string.format('%s %02d',i.type==0 and C.COPY.timer_label or C.COPY.watch_label,i.num)
 end
 function F.detail(value,countdown,minutes)
  local v=math.max(0,math.min(C.MAX_SEC,value))

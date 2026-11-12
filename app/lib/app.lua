@@ -90,7 +90,8 @@ function A:effects()
  if elapsed<(self.last_attempt and C.ATTEMPT_INTERVAL_MS or 1000) then return end
  local candidate,result=M.command(self.state,{action=target.chain and (target.cue and 'CH_CUE' or 'CH_ATTEMPT') or 'ATTEMPT',id=target.id,gen=target.gen,step=target.step,round=target.round},self.sec)
  if result=='OK' then
-  if self:commit(candidate,true) then self.last_attempt=self.ms;if target.cue then self.banner='Starting now: '..self.state.ch.run.snap.steps[self.state.ch.run.idx].name end;Signal.start(self,target.pat) end
+  local previous=self.state
+  if self:commit(candidate,true) then self.last_attempt=self.ms;if target.cue then self.banner=S.starting..self.state.ch.run.snap.steps[self.state.ch.run.idx].name end;Signal.start(self,target.pat) else self.state=previous;self.ctx.state=previous end
  end
 end
 function A:preview_pattern(pattern) Signal.start(self,pattern,true) end
@@ -101,7 +102,7 @@ function A:plan()
  if self.pulse then self.pulse:cancel();self.pulse=nil end
  if not self.alive or self.mode=='blocked' or self.mode=='recovery' then return end
  local extra=self.unsaved and 1000 or nil
- if not self.unsaved and Alerts.choose(self.state,self.sec) then local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff;extra=math.max(self.signal and 100 or 1,(self.last_attempt and 2000 or 1000)-elapsed) end
+ if not self.unsaved and Alerts.choose(self.state,self.sec) then local elapsed=(self.ms-(self.last_attempt or self.started_ms))&0x7fffffff;extra=math.max(self.signal and 100 or 1,(self.last_attempt and C.ATTEMPT_INTERVAL_MS or 1000)-elapsed) end
  local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,extra,self.page.id)
  self.coverage_warning=nil;self.chain_entry=nil
  local run=self.state.ch.run
@@ -177,7 +178,7 @@ function A:action(h)
  elseif action=='edit_time' then self:push({kind='keypad',edit=true,replace=true,days=p.draft.dur//86400,digits=string.format('%02d%02d%02d',p.draft.dur//3600%24,p.draft.dur//60%60,p.draft.dur%60)})
  elseif action=='time_done' then local v=(p.days or 0)*86400+F.keypad_seconds(p.digits);if v<1 or v>C.MAX_SEC then self:message(S.INVALID) else self:pick_field('dur',v);self:pop() end
  elseif action=='name' then
-  local form=self:form_page();self.ctx.input:text({title=form.draft.type==0 and S.timer_name or S.watch_name,text=form.draft.name,max_bytes=16},function(ctx,value)
+  local form=self:form_page();self.ctx.input:text({title=form.draft.type==0 and S.timer_name or S.watch_name,text=form.draft.name,max_bytes=C.NAME_MAX},function(ctx,value)
    self:callback(function() self:sample();self:event();if value~=nil then local normalized=F.name(value);if normalized then self:pick_field('name',normalized) else self:message(S.name_rule) end end;self:invalidate() end)
   end)
  elseif action=='icons' then self:push({kind='icons',title=S.icon,key='icon',value=p.draft.icon})

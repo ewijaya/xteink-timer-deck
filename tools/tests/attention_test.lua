@@ -59,3 +59,12 @@ end
 local aa,cc=fresh(5,0);advance(aa,cc,12000);local last
 for _,event in ipairs(cc.light_calls) do if event[1]=='set' then if last then assert(event.at-last==2000) end;last=event.at end end
 print('HOST MOCK exact pattern timestamps and save-before-light assertions passed')
+-- Failure of ATTEMPT itself must hold the old counter until the retry is durable.
+local failed_app,failed_ctx=fresh(2,0);local save=failed_ctx.save_state;local failed_once=false
+failed_ctx.save_state=function(self)
+ if self.state.items[1].att>0 and not failed_once then failed_once=true;return nil,'io_error' end
+ return save(self)
+end
+failed_ctx:advance(1000);assert(failed_once and failed_app.unsaved and failed_app.state.items[1].att==0 and not failed_app.signal)
+advance(failed_app,failed_ctx,8000);local attempts=0;for _,call in ipairs(failed_ctx.light_calls) do if call[1]=='set' then attempts=attempts+1 end end
+assert(attempts==2 and failed_app.state.items[1].att==2);print('HOST MOCK failed ATTEMPT save preserves the physical attempt budget')
