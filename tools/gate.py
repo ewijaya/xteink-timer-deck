@@ -3,13 +3,14 @@ import json, subprocess, sys, time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def main():
- report={'evidence':'HOST MOCK','device_tests_run':False,'steps':[],'milestone':'M0','status':'Failed'}
+ report={'evidence':'HOST MOCK','device_tests_run':False,'steps':[],'milestone':'M1','status':'Failed'}
  (ROOT/'build').mkdir(exist_ok=True)
  (ROOT/'build/scripts.txt').write_text(''.join(str(p.relative_to(ROOT/'app'))+'\n' for p in sorted((ROOT/'app').rglob('*.lua'))))
  steps=[('toolchain',[sys.executable,'tools/setup_lua55.py']),('lint',[sys.executable,'tools/lint.py'])]
  lua='build/toolchain/lua-5.5.0/src/lua';luac='build/toolchain/lua-5.5.0/src/luac'
  steps += [('compile '+str(p),[luac,'-p',str(p)]) for p in sorted((ROOT/'app').rglob('*.lua'))]
  steps += [(p.stem,[lua,str(p)]) for p in sorted((ROOT/'tools/tests').glob('*_test.lua'))]
+ steps += [('lint-negative-fixtures',[sys.executable,'tools/tests/lint_test.py'])]
  steps += [('previews',[sys.executable,'tools/preview.py'])]
  try:
   for name,cmd in steps:

@@ -56,7 +56,6 @@ test('fresh sessions / overlay ordering / uncaught errors',function()
  local fresh=R.session(files,c.persisted);assert(fresh.state.count==1)
  fresh:call('failure',function(ctx) ctx.state.count=99;error('injected') end);fresh:leave();assert(fresh.persisted.count==1)
 end)
-print('HOST MOCK runtime self-tests: '..n..' passed')
 test('method receivers and optional capabilities',function()
  local c=R.new({keep_awake=false,capabilities={frontlight=false,dialog=false}})
  assert(not c.frontlight and not c.dialog and not c.device.keep_awake)
@@ -64,3 +63,5 @@ test('method receivers and optional capabilities',function()
  local files={['index.lua']=[[function on_load(ctx) ctx:quit() end function on_leave(ctx) ctx.state.left=1 end]]}
  local q=R.session(files,{});assert(not q.alive and q.persisted.left==1)
 end)
+
+print('HOST MOCK runtime self-tests: '..n..' passed')

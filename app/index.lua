@@ -14,7 +14,10 @@ function on_draw(ctx,g)
  local ok=pcall(function()
   if app and not fatal then app:draw(ctx,g)
   elseif App then App.draw_fatal(ctx,g,fatal)
-  else g:clear(0);g:text(20,260,'Something went wrong - Try again',{font=ctx.fonts.large}) end
+  else
+   g:clear(0);g:text(240,260,'Something went wrong',{font=ctx.fonts.large,align='center'})
+   g:rect(16,500,448,96,{line_width=2});g:text(240,535,'Try again',{font=ctx.fonts.large,align='center'})
+  end
  end)
  if not ok then
   fatal='E-DRAW';pcall(function() ctx.log:error(fatal);if ctx.frontlight then ctx.frontlight:reset() end;App.draw_fatal(ctx,g,fatal) end)

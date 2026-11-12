@@ -2,7 +2,7 @@
 """Render HOST MOCK draw-command JSON. Fonts are approximations, not device evidence."""
 import json, subprocess, math
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'build/previews'
 FONT='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
@@ -35,6 +35,8 @@ def render(frame):
      else:line=(line+' '+word).strip()
     lines.append(line)
     for i,line in enumerate(lines[:a[3]//px]):d.text((x,y+i*px),line,font=font,fill=fill,anchor='lt')
+ if frame.get('dark'):
+  im=ImageOps.invert(im);d=ImageDraw.Draw(im)
  d.rectangle((0,784,479,799),fill='white');d.text((240,786),'HOST MOCK · NOT DEVICE EVIDENCE',font=ImageFont.truetype(FONT,11),fill='black',anchor='mt')
  return im
 def main():

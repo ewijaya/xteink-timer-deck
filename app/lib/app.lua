@@ -1,3 +1,4 @@
+local C=require('lib.core.const')
 local S=require('lib.ui.strings')
 local A={};A.__index=A
 function A.new(ctx)
@@ -38,12 +39,12 @@ function A:input(ctx,ev)
  if ev.type=='key' then
   if ev.phase~='up' then return false end
   local ms=ctx.clock:millis();local previous=self.last_keys[ev.key]
-  if previous and ((ms-previous)&0x7fffffff)<250 then return true end
+  if previous and ((ms-previous)&0x7fffffff)<C.KEY_DEBOUNCE_MS then return true end
   self.last_keys[ev.key]=ms
   if ev.key=='back' then if self.page=='deck' then return false end;action='deck'
   elseif ev.key=='up' then action=self.page=='deck' and 'info' or 'deck' end
  elseif ev.type=='pointer' then
-  if ev.phase=='down' then self.ignore=((ctx.clock:millis()-self.changed_at)&0x7fffffff)<400;return true end
+  if ev.phase=='down' then self.ignore=((ctx.clock:millis()-self.changed_at)&0x7fffffff)<C.SETTLE_MS;return true end
   if ev.phase=='cancel' then self.ignore=false;return true end
   if ev.phase=='up' then
    if self.ignore then self.ignore=false;return true end

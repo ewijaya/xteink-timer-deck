@@ -13,3 +13,18 @@ Open: V01–V14; DV01 queued. TC01–TC22 and TR01–TR12 Not run until M1. TP04
 Decisions: existing private remote acknowledged; Pebble 0.7.1 deltas remain an owner question; state filtering and inactive lock/canvas APIs follow the official contract. See decisions.md.
 
 Next: M1 timing core and the 34 core/clock cases.
+
+
+2026-11-12 — M1 timing core, HOST MOCK. Device tests: Not run.
+
+Passed: TC01–TC22 and TR01–TR12, plus AUTO-RESET (35 named cases). Every command candidate and reconciled state is validated; refused commands preserve their input. TC12 runs 1,000 seeded trials of 100 pause/resume cycles, checks each sampled segment below one second error, total bounds and mean bias. TC22 runs 10,000 seeded commands/time steps. Fresh sandbox sessions prove reload isolation. Clock and checkpoint cases prove pure policy; no claim is made about a production save adapter or device refresh latency.
+
+Passed: Lua 5.5/32 toolchain assertions; device lint including core global-write bytecode inspection; negative lint fixtures; syntax compilation of all ten app scripts; shell/lock/fatal retry suite; nine runtime self-test groups. The core suite took about 64 seconds on this host, not a device timing measurement.
+
+Passed: 21 current preview frames generated; contact sheet and individual fatal, lock, dark shell, digit sizes, stopwatch ring and last-10% chip opened and inspected. Paths: build/previews/HOST-MOCK-contact-sheet.png and build/previews/HOST-MOCK-*.png. The shared ratio implementation moved into core/format.lua without changing ring geometry.
+
+Passed: package manifest, version and 88×88 mode-1 icon validation; all three vendor hashes; decrypted equality of all ten scripts and manifest fields; all icon pixels; package under 200 KB. Final package details and SHA-256 are in dist/timerdeck-0.1.0.json and dist/SHA256SUMS. build/gate-results.json records step outcomes/durations and device_tests_run=false.
+
+Open: V01–V14 remain Open; DV01 queued, all device checks Not run. M2–M8 test IDs are Not run. No host work is blocked on device evidence. The only generation deviations are the documented baseline corrections in decisions.md. No push, upload or network operation was performed.
+
+Next: M2 foreground controls and vector icon generation. The current package remains a foundation preview, not candidate 0.1.0 (which requires M5).

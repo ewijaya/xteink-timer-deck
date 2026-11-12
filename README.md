@@ -2,7 +2,7 @@
 
 Offline Lua 5.5/32 InkApp, API 2.18, 480×800. Functional baseline: Pebble Timer Deck 0.7.0 at 202dbc6. See PRD.md for the product contract.
 
-Current work: M0 foundation shell and host tooling. Timer controls are not implemented yet. All results are HOST MOCK; no device validation has run.
+Current work: M0 foundation shell and M1 pure timing core. Timer controls are not implemented yet; the timing model is exercised by host tests. All results are HOST MOCK; no device validation has run.
 
 Run `make test`, `make preview`, `make icons` (launcher icon), or `make package`. Python with Pillow and cryptography, make and a C compiler must already be installed. The Lua archive must exist at build/toolchain/lua-5.5.0.tar.gz; setup checks its pinned hash and builds locally. No build step downloads dependencies. After cleaning build/, restore the supplied archive from a local backup.
 

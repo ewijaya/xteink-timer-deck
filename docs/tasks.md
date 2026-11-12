@@ -12,7 +12,7 @@ M0:
 - [x] Documents, gate report and local commit
 
 M1:
-- [ ] Read baseline tests and remaining matching references
-- [ ] Constants, model, commands, clock policy, completion queue and format
-- [ ] TC01–TC22 and TR01–TR12, invariants after every command
-- [ ] Gate report and local commit
+- [x] Read baseline tests and remaining matching references
+- [x] Constants, model, commands, clock policy, completion queue and format
+- [x] TC01–TC22 and TR01–TR12, invariants after every command
+- [x] Gate report and local commit

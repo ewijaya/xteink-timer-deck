@@ -1,13 +1,12 @@
 local D={}
-function D.ratio(n,d,scale)
- if d<=0 or n<=0 then return 0 end
- n=math.min(n,d)
- while d>1048576 do n=n>>1;d=d>>1 end
- return n*scale//d
-end
+D.ratio=require('lib.core.format').ratio
 function D.ring(g,remaining,duration,state,ink)
  local cx,cy,r=240,296,200
  g:circle(cx,cy,r,{color=ink,line_width=2})
+ if state=='Stopwatch' then
+  for n=0,11 do local angle=math.rad(n*30);g:line(cx+math.floor(184*math.cos(angle)),cy+math.floor(184*math.sin(angle)),cx+math.floor(198*math.cos(angle)),cy+math.floor(198*math.sin(angle)),{color=ink,line_width=2}) end
+  return
+ end
  if state=='Finished' then g:circle(cx,cy,r-12,{color=ink,line_width=2});return end
  local deg=math.max(1,D.ratio(remaining,duration,360))
  if remaining>=duration then g:circle(cx,cy,r,{color=ink,line_width=24})
