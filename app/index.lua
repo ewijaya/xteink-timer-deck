@@ -25,6 +25,7 @@ function on_draw(ctx,g)
 end
 function on_input(ctx,ev)
  local ok,handled=guard(ctx,'E-INPUT',function()
+  if app and app.fatal then fatal=app.fatal end
   if fatal then
    if ev.type=='key' and ev.phase=='up' and ev.key=='back' then return false end
    if (ev.type=='pointer' and ev.phase=='up' and ev.y>=500 and ev.y<596) or (ev.type=='key' and ev.phase=='up' and ev.key=='up') then on_load(ctx);return true end

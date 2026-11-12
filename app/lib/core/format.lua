@@ -60,4 +60,17 @@ function F.keypad_seconds(s)
  local v=tonumber(s) or C.DEFAULT_COUNTDOWN
  return (v//10000)*3600+(v//100%100)*60+v%100
 end
+function F.moment(sec,now)
+ if not sec or not now or not now.valid or not now.epoch_sec then return '--:--' end
+ local offset=(now.offset_minutes or 0)*60
+ local days=sec//86400;local clock=sec%86400+offset
+ days=days+clock//86400;clock=clock%86400
+ local z=days+719468;local era=z//146097;local doe=z-era*146097
+ local yoe=(doe-doe//1460+doe//36524-doe//146096)//365
+ local year=yoe+era*400;local doy=doe-(365*yoe+yoe//4-yoe//100);local mp=(5*doy+2)//153
+ local day=doy-(153*mp+2)//5+1;local month=mp+(mp<10 and 3 or -9);year=year+(month<=2 and 1 or 0)
+ local t={valid=true,hour=clock//3600,minute=clock//60%60,year=year,month=month,day=day,hour12=now.hour12,date_order=now.date_order,date_sep=now.date_sep}
+ local today=now.epoch_sec//86400+(now.epoch_sec%86400+offset)//86400
+ return F.clock(t,days~=today)
+end
 return F

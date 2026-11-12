@@ -9,7 +9,7 @@ local function font(px,system)
   local f={line_height=px,ascent=px-4,name='HOST MOCK',px=not system and px or nil}
   function f:measure(s,o)
     if not text(s,8192) then return nil,'invalid_argument' end
-    local n=utf8.len(s:gsub('[%z\1-\31]',''));return n*(px//2)+(o and o.bold and n>0 and 1 or 0)
+    local n=utf8.len((s:gsub('[%z\1-\31]','')));return n*(px//2)+(o and o.bold and n>0 and 1 or 0)
   end
   function f:layout(s,w,h,o)
     if not text(s,65536) or not int(w,1,32767) or not int(h,0,32767) then return nil,'invalid_argument' end
@@ -50,7 +50,7 @@ local function state_json(v)
 end
 function R.new(options)
   local o=options or {};local c={state=copy(o.state or {}),kind=o.kind or 'main',timers={},elapsed=0,millis_start=o.millis or 0,
-    now_value=copy(o.now or {valid=true,epoch_sec=1794400000,hour=12,minute=0,second=0,year=2026,month=11,day=11,weekday=3,hour12=false,date_order='ymd',date_sep='/',offset_minutes=540,revision=1}),
+    now_value=copy(o.now or {valid=true,epoch_sec=1794452400,hour=12,minute=0,second=0,year=2026,month=11,day=11,weekday=3,hour12=false,date_order='ymd',date_sep='/',offset_minutes=540,revision=1}),
     logs={},waves={},deferred={},light_calls={},awake_calls={},budgets={},saved=0,save_attempts=0,font_requests={},alive=true,
     screen={width=480,height=800,gray_levels=2},api=copy(o.api or {major=2,minor=18}),device={model=o.model or 'x4_pro',firmware=o.firmware or 'HOST MOCK',lock_timer=o.lock_timer~=false},
     capabilities=copy(o.capabilities or {pattern=false,image_transform=false,ttf=false,ui=false,reader=false,dialog=true,frontlight=true,image_decode=false,nn=true}),

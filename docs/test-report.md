@@ -28,3 +28,5 @@ Passed: package manifest, version and 88×88 mode-1 icon validation; all three v
 Open: V01–V14 remain Open; DV01 queued, all device checks Not run. M2–M8 test IDs are Not run. No host work is blocked on device evidence. The only generation deviations are the documented baseline corrections in decisions.md. No push, upload or network operation was performed.
 
 Next: M2 foreground controls and vector icon generation. The current package remains a foundation preview, not candidate 0.1.0 (which requires M5).
+
+M2 foreground interface — HOST MOCK. Foreground create/start/pause/resume/reset/edit/delete, ten-item geometry, draw purity, lazy modules, settle suppression, duplicate keys, Help/Device information and preview rollback passed in app_test.lua. 35 foreground preview frames generated; inspected ten-item deck, running detail, icon grid and days keypad. Vector regeneration checks all 30 baseline SVGs. Real touch feel and fonts remain V08/V12/V13. Alert/persistence failure extensions are covered by the following milestones, not these UI assertions.

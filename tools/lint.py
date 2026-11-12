@@ -5,13 +5,14 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def check(path,source):
  # Preserve strings for require checks, then mask strings/comments for identifiers.
- code=re.sub(r'--\[\[.*?\]\]|--[^\n]*','',source,flags=re.S)
+ token=re.compile(r"--\[\[.*?\]\]|--[^\n]*|\[\[.*?\]\]|'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"",re.S)
+ code=token.sub(lambda m: '' if m[0].startswith('--') else m[0],source)
  assert not re.search(r'''\brequire\s*\(?\s*['"][^'"]*[/\\]''',code),f'{path}: slash require'
  if path.name=='lock.lua':
   allowed={'lib.core.const','lib.core.format','lib.core.glance','lib.ui.digits'}
   for module in re.findall(r'''\brequire\s*\(?\s*['"]([^'"]+)''',code):assert module in allowed,f'{path}: lock module {module}'
- code=re.sub(r'''(['"])(?:\\.|(?!\1).)*?\1''','""',code)
- banned=[r'\b(?:io|os|debug|load|loadfile|dofile|print|collectgarbage)\b',r'\bctx\s*[.:]\s*(?:data|assets|display|layers|net|sys|system|set_tick|set_tick_rate|request_refresh|save)\b',r'\bctx(?:\s*\.\s*\w+)+\s*\(']
+ code=token.sub(lambda m: '""',code)
+ banned=[r'(?<![.\w:])(?:io|os|debug|load|loadfile|dofile|print|collectgarbage)\b',r'\bctx\s*[.:]\s*(?:data|assets|display|layers|net|sys|system|set_tick|set_tick_rate|request_refresh|save)\b',r'\bctx(?:\s*\.\s*\w+)+\s*\(']
  for p in banned:assert not re.search(p,code),f'{path}: banned API {p}'
  if 'core' in path.parts:
   assert not re.search(r'\b(?:ctx|_G|_ENV)\b|\bmath\s*\.\s*random',code),f'{path}: impure core'

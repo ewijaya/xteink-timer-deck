@@ -14,3 +14,5 @@ Baseline discrepancies reserved for M1: Pebble PRIMARY dismissal does not increm
 - Alert pattern/count freeze on both Start and Resume, as §10.2 and baseline tests require, resolving §9.3's shorter Resume row.
 - M1's core validates only empty reserved chain data. Chain validation/commands arrive in M6; no chain behaviour is silently approximated. Checkpoint tests exercise the pure policy; production persistence scheduling remains M3/M4.
 - The pinned packager also imports tools/vendor/mksd.py. Vendor and hash-pin this unmodified MIT dependency; an empty data section is absent, with no hmac_data field.
+
+M2: Deck uses 32 px names and 40 px values when measured width fits; 26/22 px fallback keeps long labels/compact day values inside their columns. Geometry follows the PRD's tuning allowance; ten 63 px rows still fit. Host font measurement now brackets gsub's multiple return values before utf8.len, fixing a double-only error exposed by real labels. The lint tokenizes quoted/long strings before checking identifiers; ordinary module methods such as Store.load are permitted, while the unavailable global load remains banned.

@@ -5,6 +5,7 @@ preview:
 	python3 tools/setup_lua55.py
 	python3 tools/preview.py
 icons:
+	python3 tools/icons.py
 	python3 tools/app_icon.py
 package: test
 	python3 tools/package_local.py

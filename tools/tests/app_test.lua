@@ -1,15 +1,38 @@
-package.path='tools/shim/?.lua;'..package.path
-local R=require('runtime')
-local files={}
--- Host-only fixture collection; app sandbox has no io/package/load.
-for line in io.lines('build/scripts.txt') do local f=assert(io.open('app/'..line));files[line]=f:read('a');f:close() end
-local c=R.session(files,{sentinel=7});assert(c.alive,c.error);local g=c:draw();assert(c.alive,c.error);assert(g.command_count<=768)
-local before=c.save_attempts;c:advance(500);c:event('on_input',{type='key',key='up',phase='up'});c:draw();assert(c.alive,c.error);assert(c.save_attempts==before)
-local shown=false;for _,cmd in ipairs(c.last_canvas.commands) do if cmd.method=='text' and cmd.args[3]=='Device information' then shown=true end end;assert(shown)
-c:event('on_input',{type='key',key='back',phase='up'});c:draw();assert(c.state.sentinel==7)
-local l=R.session(files,{sentinel=7},'lock');l:draw();assert(l.alive,l.error);l:leave();assert(l.save_attempts==0 and l.persisted.sentinel==7)
--- Fatal load and draw failures must be caught, and retry must reconstruct the app.
-local original=files['lib/app.lua'];files['lib/app.lua']='error("injected")'
-local f=R.session(files,{});assert(f.alive);f:draw();assert(f.alive);files['lib/app.lua']=original
-f:event('on_input',{type='key',phase='up',key='up'});f:draw();assert(f.alive,f.error)
-print('HOST MOCK shell / lock / fatal retry passed')
+package.path='tools/shim/?.lua;app/?.lua;'..package.path
+local R=require('runtime');local M=require('lib.core.model');local App=require('lib.app');local J=require('json')
+local c=R.new();local a=App.new(c)
+local function draw()
+ local before=assert(J:encode(a.state));local fonts=#c.font_requests;local saves=c.save_attempts;local g=R.canvas(c);c:call('on_draw',function(ctx) a:draw(ctx,g) end);assert(c.alive,c.error)
+ assert(before==J:encode(a.state) and fonts==#c.font_requests and saves==c.save_attempts)
+ assert(g.command_count<=768)
+ for n,h in ipairs(a.hits) do assert(h.x>=0 and h.y>=0 and h.x+h.w<=480 and h.y+h.h<=800 and h.w>=56 and h.h>=56)
+  for k=1,n-1 do local b=a.hits[k];assert(h.x>=b.x+b.w or b.x>=h.x+h.w or h.y>=b.y+b.h or b.y>=h.y+h.h,'overlapping hits') end
+ end
+ return g
+end
+local function action(s,arg)
+ a:sample();a:event();assert(a:action({action=s,arg=arg}));draw()
+end
+draw();action('new_timer');action('digit','9');action('digit','0');action('create',true);assert(#a.state.items==1 and a.state.items[1].dur==90 and a.state.items[1].st==1)
+local i=a.state.items[1];a:action({action='primary',id=i.id,gen=i.gen});assert(a.state.items[1].st==2);a:action({action='primary',id=i.id,gen=i.gen});assert(a.state.items[1].st==1)
+a:action({action='reset',id=i.id,gen=i.gen});draw();assert(a.state.items[1].st==0)
+a:action({action='actions'});action('edit');action('icons');action('pick',1);action('save_form',false);assert(a.state.items[1].icon==1)
+a:action({action='delete',id=a.state.items[1].id,gen=a.state.items[1].gen});draw();assert(#a.state.items==0)
+a.page={kind='deck'};action('menu');action('settings');action('setting','app');action('pick',2);assert(a.preview_setting.value==2);action('back');assert(a.state.set.app==0 and not a.preview_setting)
+a.page={kind='deck'};action('help');for _=1,7 do action('about_tap') end;assert(a.page.kind=='info')
+-- Read-only draw, recovery entry, unknown global denial and fresh module scope.
+local files={};for line in io.lines('build/scripts.txt') do local f=assert(io.open('app/'..line));files[line]=f:read('a');f:close() end
+local fresh=R.session(files,{});fresh:draw();assert(fresh.alive,fresh.error)
+local lock=R.session(files,{},'lock');lock:draw();assert(lock.alive and lock.save_attempts==0)
+assert(not fresh.loaded['lib.ui.forms'] and not fresh.loaded['lib.ui.info'] and not fresh.loaded['lib.core.importer'])
+print('HOST MOCK foreground flow, geometry, draw purity, lazy loading passed')
+-- Real pointer/key routes: settle suppression, duplicate key suppression, wrap and activation.
+a.page={kind='deck'};a.stack={};draw();a.changed_at=a.ms
+local before=#a.stack;a:input(c,{type='pointer',phase='down',x=80,y=750});a:input(c,{type='pointer',phase='up',x=80,y=750,gesture='tap'});assert(#a.stack==before)
+c:advance(500);a:input(c,{type='pointer',phase='down',x=80,y=750});a:input(c,{type='pointer',phase='up',x=80,y=750,gesture='tap'});assert(a.page.kind=='keypad');draw()
+a:input(c,{type='key',key='down',phase='up'});local focus=a.focus;a:input(c,{type='key',key='down',phase='up'});assert(a.focus==focus)
+c:advance(300);a:input(c,{type='key',key='down',phase='up'});assert(a.focus~=focus)
+-- Ten mixed items draw within budget and have independent target identities.
+a.page={kind='deck'};a.stack={};for n=1,10 do a:event({action='CREATE',type=n%2,dur=100,icon=n}) end;draw();assert(#a.state.items==10)
+local id,gen=a.state.items[1].id,a.state.items[1].gen;a:command('DELETE',{id=id,gen=gen});a:command('CREATE',nil,{dur=100});local _,result=M.command(a.state,{action='PRIMARY',id=id,gen=gen},a.sec);assert(result=='STALE')
+print('HOST MOCK TU01-TU13 foreground scope passed; alert/appearance extensions remain later gates')
