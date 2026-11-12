@@ -15,27 +15,27 @@ end
 C.COPY={
  title='TIMER DECK',empty='No timers yet',info='Device information',back='Back',
  notice='This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.',
- foundation='Timer Deck preview',pending='Timers are not available yet.',fatal='Something went wrong',retry='Try again',
+ fatal='Something went wrong',retry='Try again',
 
  new_timer='New timer',new_watch='New stopwatch',chains='Chains',menu='Menu',settings='Settings',help='Help / About',
  start='Start',pause='Pause',resume='Resume',dismiss='Dismiss',reset='Reset',save='Save',more='More options',start_timer='Start timer',done='Done',keep='Keep',delete='Delete',edit='Edit',
- time='Time',name='Name',icon='Icon',alert='Alert',count='Count',days='days',none='None',backspace='<',
+ time='Time',name='Name',icon='Icon',alert='Light pattern',count='Alert repeats',days='days',none='None',backspace_glyph='<',
  states={'READY','RUNNING','PAUSED','FINISHED'},primary={'Start','Pause','Resume','Dismiss'},
- appearance='Appearance',seconds='Seconds',awake='Stay awake',flash='Screen flash',light='Light pulse',lockscreen='Lock screen',sync='Import and export',erase='Reset saved data',
- appearances={'Auto','Light','Dark'},seconds_modes={'Smart','Always','Never'},onoff={'Off','On'},use='Use this',preview='Preview',
- default_alert='Default alert',default_count='Default count',battery='Uses more battery',clear_all='Clear all',count_up='COUNT UP',limit='LIMIT REACHED',
+ seconds='Seconds',awake='Stay awake',flash='Screen flash',light='Light pulse',lockscreen='Lock screen',sync='Data',erase='Reset saved data',
+ seconds_modes={'Smart','Always','Never'},onoff={'Off','On'},preview='Preview',
+ battery='Uses more battery',clear_all='Clear all',count_up='COUNT UP',limit='LIMIT REACHED',
  reset_duration='Reset to edit duration',timer_name='Timer name',watch_name='Stopwatch name',discard='Discard changes?',discard_new='Discard new timer?',
  ACTIVE='A chain is already active',CHAIN_FULL='You have 5 saved chains',
  FULL='10 items saved. Delete one to add another.',INVALID='Check the values and try again.',STALE='This item changed. Try again.',OVERFLOW="This timer would end after the device clock's limit (January 2038).",CLOCK='Set the device clock to use timers.',
  zero='Set at least 1 second',name_rule='Names use up to 16 basic Latin characters.',save_error='Could not save. Try again.',not_saved='NOT SAVED - RETRYING',clock_unset='CLOCK NOT SET',
- rollback='Clock changed. Timers restored from last saved time.',open_only='ALERTS ONLY WHILE TIMER DECK IS OPEN',
+ rollback='Clock changed. Timers restored from last saved time.',
  open_strip='ALERTS ONLY WHILE TIMER DECK IS OPEN',enable_awake='Turn on Stay awake',use_lock='Use lock screen',
  coverage={'Alert: only while open','Alert: screen stays on','Alert: lock screen'},leave_title='Leave Timer Deck?',leave_text='Timers keep counting. You will not be alerted until you open Timer Deck again.',leave='Leave',stay='Stay',
  erase_text='Reset saved data? All Timer Deck items and settings will be removed.',restored='Saved data was restored from a backup.',recovery='Saved data could not be read. Try again reloads saved data. Start fresh removes old timers and settings after confirmation.',blocked='Saved data needs a newer Timer Deck version.',fresh='Start fresh',ok='OK',
  finished_away='FINISHED AWAY',queue='%d OF %d DONE',away_queue='AWAY %d OF %d',
  no_chains='No chains yet',new_chain='New chain',empty_chain='Empty chain',from_deck='From Deck timers',rounds='Rounds',steps='Steps',add_step='Add step',duplicate='Duplicate',move_up='Move up',move_down='Move down',remove='Remove',
- start_chain='Start',active_chain='View active chain',chain_busy='A chain is already active',chain_min='Add at least 2 steps',chain_max='This chain has 10 steps',chain_full='You have 5 saved chains',
- last_step='Last step',chain_name='Chain name',step_name='Step name',edit_chain='Edit chain',step='Step',step_of='STEP %d OF %d',round_of='ROUND %d OF %d',pager='MORE · %d OF %d',at='at ',tap_refresh=' · tap to refresh',
+ active_chain='View active chain',chain_min='Add at least 2 steps',chain_max='This chain has 10 steps',
+ last_step='Last step',sec='SEC',min='MIN',times='×',number='#%02d',badge='%02d',skip_short='Skip',more_glyph='...',prev_glyph='<',next_glyph='>',toggle={'>','II','>','OK'},delete_label='Delete "%s"?',stop_delete_label='Stop and delete "%s"?',screen_only='Finished timers show on screen only.',results='Import results',chain_name='Chain name',step_name='Step name',edit_chain='Edit chain',step='Step',step_of='STEP %d OF %d',round_of='ROUND %d OF %d',pager='MORE · %d OF %d',at='at ',tap_refresh=' · tap to refresh',
  coverage_text='Timer Deck can alert you only while it is on screen. Stay awake keeps the reader on for timers that end within 4 hours.',coverage_later=' This timer ends later than that, so it is not covered yet.',
  restart='Restart step',skip='Skip step',stop='Stop chain',stop_question='Stop this chain?',stop_delete='Stop and delete this chain?',chain_complete='Chain complete',chain_stopped='Chain stopped',again='Run again',all_chains='All chains',add='Add steps',
  file_error='Could not write the file. Try again.',import_ok='Imported definitions. See timerdeck-import-result.txt.',import_result_error='Imported, but the result file could not be written.',last25='RUNNING · LAST 25%',last10='LAST 10%',
@@ -58,6 +58,8 @@ Chains
 A chain runs several steps one after another. Tap Chains, then New chain.
 Clock changes
 Timer Deck uses the device clock. If the clock moves forward, timers move forward with it.
+Dark mode
+Dark mode: double-press Home, or use the reader's display settings.
 Typeface
 To change the typeface, open Ink App settings, then Font.]],
 }
@@ -83,11 +85,9 @@ C.COPY.paused_lower='paused'
 C.COPY.min_left='MIN LEFT'
 C.COPY.timer_label='TIMER'
 C.COPY.watch_label='WATCH'
-C.COPY.preview_time='04:00'
 C.COPY.keypad_hint='H : MIN : SEC'
 C.COPY.line='Line '
-C.COPY.import_errors={size='File exceeds 16384 bytes',utf8='Invalid UTF-8',chain='Chain needs 2–10 steps and a valid total',fields='Invalid duration, icon, alert or count',orphan='Step without a chain',watch='Invalid stopwatch',definition='Invalid chain',kind='Unknown kind',empty='No definitions found'}
-C.COPY.patterns=C.PATTERNS
-C.COPY.icon_names=C.ICON_NAMES
+C.COPY.import_errors={lines='File exceeds %d lines',name='Invalid name',size='File exceeds 16384 bytes',utf8='Invalid UTF-8',chain='Chain needs 2–10 steps and a valid total',fields='Invalid duration, icon, alert or count',orphan='Step without a chain',watch='Invalid stopwatch',definition='Invalid chain',kind='Unknown kind',empty='No definitions found'}
 
+C.COUNTS={};for n=C.COUNT_MIN,C.COUNT_MAX do C.COUNTS[#C.COUNTS+1]=tostring(n) end
 return C

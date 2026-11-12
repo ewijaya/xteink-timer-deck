@@ -21,9 +21,9 @@ function F.detail(value,countdown,minutes)
  local d,h,m,s=v//86400,v//3600%24,v//60%60,v%60
  local days=d>0 and d..'d' or ''
  if minutes then
-  return days,(d>0 and string.format('%02d:%02d',h,m) or h>0 and string.format('%d:%02d',h,m) or string.format('%02d',m)),'MIN'
+  return days,(d>0 and string.format('%02d:%02d',h,m) or h>0 and string.format('%d:%02d',h,m) or string.format('%02d',m)),C.COPY.min
  end
- return days,(d>0 and string.format('%02d:%02d:%02d',h,m,s) or h>0 and string.format('%d:%02d:%02d',h,m,s) or string.format('%02d:%02d',m,s)),'SEC'
+ return days,(d>0 and string.format('%02d:%02d:%02d',h,m,s) or h>0 and string.format('%d:%02d:%02d',h,m,s) or string.format('%02d:%02d',m,s)),C.COPY.sec
 end
 function F.compact(v,countdown,minutes,never)
  if never and countdown and v>0 and v<60 then return '<1 min' end

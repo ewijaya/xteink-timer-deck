@@ -16,10 +16,10 @@ end
 draw();action('new_timer');action('digit','9');action('digit','0');action('create',true);assert(#a.state.items==1 and a.state.items[1].dur==90 and a.state.items[1].st==1)
 local i=a.state.items[1];a:action({action='primary',id=i.id,gen=i.gen});assert(a.state.items[1].st==2);a:action({action='primary',id=i.id,gen=i.gen});assert(a.state.items[1].st==1)
 a:action({action='reset',id=i.id,gen=i.gen});draw();assert(a.state.items[1].st==0)
-a:action({action='actions'});action('edit');action('icons');action('pick',1);action('save_form',false);assert(a.state.items[1].icon==1)
+action('edit');action('icons');action('pick',1);action('save_form',false);assert(a.state.items[1].icon==1)
 a:action({action='delete',id=a.state.items[1].id,gen=a.state.items[1].gen});draw();assert(#a.state.items==0)
-a.page={kind='deck'};action('menu');action('settings');action('setting','app');action('pick',2);assert(a.preview_setting.value==2);action('back');assert(a.state.set.app==0 and not a.preview_setting)
-a.page={kind='deck'};action('help');for _=1,7 do action('about_tap') end;assert(a.page.kind=='info')
+a.page={kind='deck'};action('menu');action('settings');assert(a:action({action='setting',arg='app'})==false and not a.preview_setting)
+a.page={kind='deck'};action('help');action('back');action('menu');action('info');assert(a.page.kind=='info')
 -- Read-only draw, recovery entry, unknown global denial and fresh module scope.
 local files={};for line in io.lines('build/scripts.txt') do local f=assert(io.open('app/'..line));files[line]=f:read('a');f:close() end
 local fresh=R.session(files,{});fresh:draw();assert(fresh.alive,fresh.error)

@@ -41,6 +41,7 @@ def render(frame):
  return im
 def main():
  OUT.mkdir(parents=True,exist_ok=True)
+ for old in OUT.glob('HOST-MOCK-*.png'):old.unlink()
  raw=subprocess.check_output([str(ROOT/'build/toolchain/lua-5.5.0/src/lua'),'tools/tests/preview.lua'],cwd=ROOT,text=True)
  (OUT/'commands.jsonl').write_text(raw)
  images=[]

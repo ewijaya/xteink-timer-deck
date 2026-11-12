@@ -68,3 +68,19 @@ assert(overlay_app:action({action='name'}));overlay_app:pause(overlay_ctx);overl
 assert(overlay_app.state.items[1].name=='My Tea' and overlay_app.page.kind=='completion');local kept=false;for _,page in ipairs(overlay_app.stack) do if page==draft then kept=true end end;assert(kept)
 overlay_app:action({action='clear_all'});assert(overlay_app.page==draft);print('HOST MOCK TU09 / TU10 overlay interruption and draft restoration passed')
 local lock_ctx=R.new();local lock_app=App.new(lock_ctx);lock_app:action({action='lockscreen'});assert(lock_ctx.overlay and not lock_app.lock_default);lock_ctx.overlay=nil;lock_ctx.lock_default=true;lock_app:resume(lock_ctx);assert(lock_app.lock_default);lock_app:action({action='lockscreen'});assert(not lock_app.lock_default);print('HOST MOCK TU11 lock selection and resume recheck passed')
+-- TU22: legacy appearance/style are validated, preserved and ignored; controls follow capabilities.
+do
+ local frame
+ for appearance=0,2 do for style=0,3 do
+  local state=M.new();state.set.app=appearance;state.set.style=style
+  local cc=R.new({state=state});local aa=App.new(cc);local canvas=R.canvas(cc);aa:draw(cc,canvas)
+  local encoded=J:encode(canvas.commands);if frame then assert(frame==encoded) else frame=encoded end
+  assert(aa.state.set.app==appearance and aa.state.set.style==style and M.valid(aa.state))
+ end end
+ for _,light in ipairs({false,true}) do for _,awake in ipairs({false,true}) do for flash=0,1 do for pulse=0,1 do
+  local cc=R.new({keep_awake=awake,capabilities={frontlight=light}});local aa=App.new(cc);aa.state.set.flash=flash;aa.state.set.light=pulse;aa.page={kind='settings'};local seen={}
+  for page=0,1 do aa.page.offset=page;aa:draw(cc,R.canvas(cc));for _,h in ipairs(aa.hits) do if h.arg then seen[h.arg]=true;assert(h.arg~='app' and h.arg~='style') end end end
+  assert(not not seen.pat==(light and pulse==1));assert(not not seen.cnt==(flash==1 or light and pulse==1));assert(not not seen.awake==awake)
+ end end end end
+ print('HOST MOCK Passed TU22')
+end

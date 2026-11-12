@@ -47,13 +47,13 @@ function I.parse(text,settings)
  end
  local input=text:gsub('\r\n','\n');if input:sub(-1)=='\n' then input=input:sub(1,-2) end
  for raw in (input..'\n'):gmatch('(.-)\n') do
-  count=count+1;if count>C.IMPORT_LINES then error_line(count,'File exceeds '..C.IMPORT_LINES..' lines');break end
+  count=count+1;if count>C.IMPORT_LINES then error_line(count,string.format(E.lines,C.IMPORT_LINES));break end
   local line=trim(raw)
   if line~='' and line:sub(1,1)~='#' then
    local f={};for v in (line..'|'):gmatch('(.-)|') do f[#f+1]=trim(v) end
    local kind=f[1]:lower();local name=F.name(f[2] or '')
    if kind~='step' then close() end
-   if not name then error_line(count,'Invalid name')
+   if not name then error_line(count,E.name)
    elseif kind=='timer' or kind=='step' then
     local dur=f[3] and I.duration(f[3]);local ic=icon(f[4]);local pat=named(f[5],C.PATTERNS,settings.pat,0);local cnt=optional_number(f[6],C.COUNT_MIN,C.COUNT_MAX,settings.cnt)
     if not dur or not ic or not pat or not cnt or #f>(kind=='timer' and 6 or 5) then error_line(count,E.fields)
@@ -86,7 +86,7 @@ function I.propose(s,text,digest,now)
 end
 function I.export(s)
  local lines={'# Timer Deck definitions; importing adds Ready items.'}
- local keys={};for key in pairs(s.set) do keys[#keys+1]=key end;table.sort(keys);for _,key in ipairs(keys) do lines[#lines+1]='# '..key..' = '..s.set[key] end
+ local keys={};for key in pairs(s.set) do if key~='app' and key~='style' then keys[#keys+1]=key end end;table.sort(keys);for _,key in ipairs(keys) do lines[#lines+1]='# '..key..' = '..s.set[key] end
  for _,v in ipairs(s.items) do
   if v.type==0 then lines[#lines+1]=table.concat({'timer',v.name,v.dur,v.icon,v.pat,v.cnt},' | ')
   else lines[#lines+1]=table.concat({'stopwatch',v.name,v.icon},' | ') end

@@ -6,7 +6,7 @@ local Alerts=require('lib.core.alerts');local Signal=require('lib.platform.signa
 local A={};A.__index=A
 local function same(a,b) if type(a)~=type(b) then return false end;if type(a)~='table' then return a==b end;for k,v in pairs(a) do if not same(v,b[k]) then return false end end;for k in pairs(b) do if a[k]==nil then return false end end;return true end
 function A.new(ctx)
- local self=setmetatable({ctx=ctx,features={lock=true,sync=true},page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
+ local self=setmetatable({ctx=ctx,page={kind='deck'},stack={},hits={},keys={},fonts={},shown={},partials=0,queue={},queue_pos=1,alive=true},A)
  for _,px in ipairs({22,26,32,40}) do self.fonts[px]=ctx.fonts:size(px) end
  self:sample();self.started_ms=self.ms;self.original_light=ctx.frontlight and ctx.frontlight:get();self.last_save=self.sec or 0;self.changed_at=self.ms
  local state,status=Store.load(ctx,self.sec);self.state=state or M.new();self.mode=status
@@ -63,7 +63,7 @@ end
 function A:commit(candidate,time_driven)
  local previous=self.state
  local ok=Store.commit(self.ctx,candidate,previous)
- if ok then self.state=candidate;self.ctx.state=candidate;self.warning=nil;self.last_save=self.sec or self.last_save;if self.backup and not self.checkpoint then self:backup() end;return true end
+ if ok then self.state=candidate;self.ctx.state=candidate;self.warning=nil;self.last_save=self.sec or self.last_save;if not self.checkpoint then self:backup() end;return true end
  if time_driven then self.state=candidate;self.ctx.state=candidate;self.warning=S.not_saved;self.unsaved=true
  else self:message(S.save_error) end
  return false
@@ -126,7 +126,7 @@ function A:plan()
  local delay=P.plan(self.state,self.sec,self.page.kind,self.last_save,extra,self.page.id)
  self.coverage_warning=nil;self.chain_entry=nil
  local run=self.state.ch.run
- if run.st==1 or run.st==2 then local step=run.snap.steps[run.idx];self.chain_entry={chain=true,id=run.id,gen=run.gen,num=0,name=(run.snap.name~='' and run.snap.name or S.chains)..' '..run.idx..'/'..#run.snap.steps,icon=step.icon,type=0,st=run.st==4 and 3 or run.st,dur=step.sec,val=H.value(run,self.sec),anc=run.anc,lim=0} end
+ if run.st==1 or run.st==2 then local step=run.snap.steps[run.idx];self.chain_entry={chain=true,id=run.id,gen=run.gen,num=0,name=(run.snap.name~='' and run.snap.name or S.chains)..' '..run.idx..'/'..#run.snap.steps,icon=step.icon,type=0,st=run.st,dur=step.sec,val=H.value(run,self.sec),anc=run.anc,lim=0} end
  if run.st==1 and not (self.lock_default and self.ctx.device.lock_timer) and not (self.state.set.awake==1 and self.ctx.device.keep_awake and self.sec and H.remaining(run,self.sec)<=C.AWAKE_HORIZON_SEC) then self.coverage_warning=S.open_strip end
  for _,i in ipairs(self.state.items) do if i.type==0 and i.st==1 and self:coverage(i)==S.coverage[1] then self.coverage_warning=S.open_strip end end
  if self.ctx.device.keep_awake then
@@ -164,7 +164,7 @@ function A:help()
 end
 function A:action(h)
  local action,arg=h.action,h.arg;local p=self.page;if not action then return false end
- if action=='sync' or action=='import' or action=='export' then return require('lib.ui.sync').action(self,h) end
+ if action=='sync' or action=='import' or action=='export' or action=='import_results' then return require('lib.ui.sync').action(self,h) end
  if action:sub(1,3)=='ch_' or action=='chains' or action=='chain_run' then return require('lib.ui.chains').action(self,h) end
  if action=='back' then
   if (self.mode=='recovery' or self.mode=='blocked') and p.kind==self.mode and #self.stack==0 then return false end
@@ -176,8 +176,7 @@ function A:action(h)
    return false
   end
   if p.kind=='completion' then return self:action({action='clear_all'}) end
-  if p.kind=='picker' and p.preview then self.preview_setting=nil end
-  if (p.kind=='form' or p.kind=='chain_edit' or p.kind=='chain_step') and not p.live and not same(p.draft,p.original) or p.kind=='keypad' and p.dirty then self:confirm(S.discard,function() self:pop() end) else self:pop() end
+  if (p.kind=='form' or p.kind=='chain_edit' or p.kind=='chain_step') and not p.live and not same(p.draft,p.original) or p.kind=='keypad' and p.dirty then self:confirm((p.kind=='keypad' and not p.edit or p.kind=='form' and not p.id) and S.discard_new or S.discard,function() self:pop() end) else self:pop() end
  elseif action=='new_timer' then if #self.state.items>=C.CAPACITY then self:message(S.FULL) else self:push({kind='keypad'}) end
  elseif action=='digit' then p.dirty=true;if p.replace and arg~='back' then p.digits=nil end;p.replace=false;p.digits=F.keypad(p.digits,arg)
  elseif action=='days' then p.dirty=true;p.days=math.max(0,math.min(999,(p.days or 0)+arg))
@@ -194,7 +193,6 @@ function A:action(h)
  elseif action=='delete' then if self:command('DELETE',h) then self:go({kind='deck'}) end
  elseif action=='arm_delete' then self:arm('item',h.id,h.gen)
  elseif action=='keep' then self:disarm()
- elseif action=='actions' then local i=M.find(self.state,p.id);if i then self:push({kind='actions',id=i.id,gen=i.gen}) end
  elseif action=='edit' then local i=M.find(self.state,p.id);if i then self:open_form(i) end
  elseif action=='edit_time' then self:push({kind='keypad',edit=true,replace=true,days=p.draft.dur//86400,digits=string.format('%02d%02d%02d',p.draft.dur//3600%24,p.draft.dur//60%60,p.draft.dur%60)})
  elseif action=='time_done' then local v=(p.days or 0)*86400+F.keypad_seconds(p.digits);if v<1 or v>C.MAX_SEC then self:message(S.INVALID) else self:pick_field('dur',v);self:pop() end
@@ -203,26 +201,24 @@ function A:action(h)
    self:callback(function() self:sample();self:event();if value~=nil then local normalized=F.name(value);if normalized then self:pick_field('name',normalized) else self:message(S.name_rule) end end;self:invalidate() end)
   end)
  elseif action=='icons' then self:push({kind='icons',title=S.icon,key='icon',value=p.draft.icon})
- elseif action=='pattern' or action=='count' then self:push({kind='picker',title=action=='pattern' and S.alert or S.count,key=action=='pattern' and 'pat' or 'cnt',value=action=='pattern' and p.draft.pat or p.draft.cnt-1,options=action=='pattern' and C.PATTERNS or {'1','2','3','4','5'}})
+ elseif action=='pattern' or action=='count' then self:push({kind='picker',title=action=='pattern' and S.alert or S.count,key=action=='pattern' and 'pat' or 'cnt',value=action=='pattern' and p.draft.pat or p.draft.cnt-1,options=action=='pattern' and C.PATTERNS or C.COUNTS})
  elseif action=='save_form' then
   local d=p.draft;local fields=p.id and {values=p.live and {name=d.name,icon=d.icon} or d.type==0 and {name=d.name,icon=d.icon,pat=d.pat,cnt=d.cnt,dur=d.st==0 and d.dur or nil} or {name=d.name,icon=d.icon}} or d
   if self:command(p.id and 'EDIT' or arg and 'CREATE_START' or 'CREATE',p,fields) then self:go((p.id or arg) and {kind='detail',id=p.id or self.state.sel} or {kind='deck'}) end
  elseif action=='pick' then
-  if p.preview then p.value=arg;self.preview_setting={key=p.key,value=arg}
-  elseif p.setting then if self:command('SETTINGS',nil,{values={[p.key]=p.key=='cnt' and arg+1 or arg}}) then self:pop() end
+  if p.setting then if self:command('SETTINGS',nil,{values={[p.key]=p.key=='cnt' and arg+1 or arg}}) then self:pop() end
   else self:pick_field(p.key,p.key=='cnt' and arg+1 or arg);self:pop() end
  elseif action=='coverage' then self:push({kind='coverage'})
  elseif action=='enable_awake' then self:command('SETTINGS',nil,{values={awake=1}});self:pop()
  elseif action=='lockscreen' then if self.ctx.lockscreen then if self.lock_default then self.ctx.lockscreen:clear_default() else self.ctx.lockscreen:set_default() end;self.lock_default=self.ctx.lockscreen:is_default() end
- elseif action=='use' then if self:command('SETTINGS',nil,{values={[p.key]=p.value}}) then self.preview_setting=nil;self:pop();self:invalidate(true) end
  elseif action=='menu' or action=='settings' then self:push({kind=action})
  elseif action=='setting' then
-  if arg=='style' then return end -- Retired setting; preserve old saved values only.
-  local options={app=S.appearances,secs=S.seconds_modes,pat=C.PATTERNS,cnt={'1','2','3','4','5'}}
+  local options={secs=S.seconds_modes,pat=C.PATTERNS,cnt=C.COUNTS}
+  if not options[arg] and arg~='flash' and arg~='light' and arg~='awake' then return false end
   if not options[arg] then self:command('SETTINGS',nil,{values={[arg]=1-self.state.set[arg]}})
-  else self:push({kind='picker',title=({app=S.appearance,secs=S.seconds,pat=S.alert,cnt=S.count})[arg] or S.settings,key=arg,value=self.state.set[arg]-(arg=='cnt' and 1 or 0),options=options[arg],setting=true,preview=arg=='app'}) end
+  else self:push({kind='picker',title=({secs=S.seconds,pat=S.alert,cnt=S.count})[arg] or S.settings,key=arg,value=self.state.set[arg]-(arg=='cnt' and 1 or 0),options=options[arg],setting=true}) end
  elseif action=='help' then self:help()
- elseif action=='about_tap' then self.taps=(self.taps or 0)+1;if self.taps>=7 then self.taps=0;self:diagnose();self:push({kind='info'}) end
+ elseif action=='info' then self:diagnose();self:push({kind='info'})
  elseif action=='page' then local count=math.max(1,self.page_count or 1);p.offset=((p.offset or 0)+arg)%count;self.focus=nil
  elseif action=='next_item' then local _,n=M.find(self.state,p.id);if n and #self.state.items>0 then p.id=self.state.items[(n-1+arg)%#self.state.items+1].id;self.peek=nil end
  elseif action=='peek' then local i=M.find(self.state,p.id);if i and i.st==1 and self.sec and not P.seconds(self.state.set.secs,true,i,M.value(i,self.sec)) then local d,t=F.detail(M.value(i,self.sec),i.type==0,false);local value=M.value(i,self.sec);if value<86400 then t=string.format('%d:%02d:%02d',value//3600,value//60%60,value%60) end;self.peek={days=d,time=t,at=(F.clock(self.now):gsub('(%d+:%d%d)','%1:'..string.format('%02d',self.now.second or 0)))} end
@@ -241,13 +237,12 @@ function A:action(h)
  end)
  elseif action=='accept' then local fn=p.accept;self:pop();fn()
  elseif action=='ok' then self:pop()
- elseif action=='chains' then self:message(S.no_chains)
- elseif action=='preview_pattern' then if self.preview_pattern then self:preview_pattern(arg) end
+ elseif action=='preview_pattern' then self:preview_pattern(arg)
  else return false end
  return true
 end
 function A:diagnose()
- self.diagnostics={'API '..self.ctx.api.major..'.'..self.ctx.api.minor,'Model '..tostring(self.ctx.device.model),'Firmware '..tostring(self.ctx.device.firmware),'Heap '..self.ctx.gc:count()..' bytes','State '..#assert(self.ctx.json:encode(self.state))..' bytes','Pending timers '..((self.pulse and 1 or 0)+(self.signal_timer and 1 or 0)+(self.backup_timer and 1 or 0)+(self.arm_timer and 1 or 0)),'Draw us '..self.ctx.perf:info().draw_us,'Longest input ms '..(self.longest_input_ms or 0),'Front light '..tostring(self.ctx.frontlight~=nil),'Partial frames '..self.partials,'Lock timer '..tostring(self.ctx.device.lock_timer),'Keep awake '..tostring(self.ctx.device.keep_awake~=nil),'Last error '..(self.fatal or 'none')}
+ self.diagnostics={'Timer Deck '..require('lib.gen.version'),'API '..self.ctx.api.major..'.'..self.ctx.api.minor,'Model '..tostring(self.ctx.device.model),'Firmware '..tostring(self.ctx.device.firmware),'Heap '..self.ctx.gc:count()..' bytes','State '..#assert(self.ctx.json:encode(self.state))..' bytes','Pending timers '..((self.pulse and 1 or 0)+(self.signal_timer and 1 or 0)+(self.backup_timer and 1 or 0)+(self.arm_timer and 1 or 0)),'Draw us '..self.ctx.perf:info().draw_us,'Longest input ms '..(self.longest_input_ms or 0),'Front light '..tostring(self.ctx.frontlight~=nil),'Partial frames '..self.partials,'Lock timer '..tostring(self.ctx.device.lock_timer),'Keep awake '..tostring(self.ctx.device.keep_awake~=nil),'Last error '..(self.fatal or 'none')}
  for k,v in pairs(self.ctx.capabilities) do self.diagnostics[#self.diagnostics+1]=k..': '..tostring(v) end
 end
 function A:input(ctx,ev)
@@ -262,14 +257,13 @@ function A:input(ctx,ev)
  local handled=self:action(h);self:plan();self:invalidate();self.longest_input_ms=math.max(self.longest_input_ms or 0,(ctx.clock:millis()-began)&0x7fffffff);return handled
 end
 function A:draw(ctx,g)
- local appearance=self.preview_setting and self.preview_setting.key=='app' and self.preview_setting.value or self.state.set.app
- self.ink,self.paper=Theme.colors(appearance,ctx.device:display().dark,self.flash)
+ self.ink,self.paper=Theme.colors(self.flash)
  self.hits={};g:clear(self.paper);local kind=self.page.kind
  if self.fatal then A.draw_fatal(ctx,g,self.fatal);return end
  if kind=='deck' then Deck.draw(self,g) elseif kind=='detail' then Detail.draw(self,g) elseif kind=='keypad' then Keypad.draw(self,g)
  elseif kind=='form' then require('lib.ui.forms').draw(self,g)
  elseif kind=='icons' or kind=='picker' then require('lib.ui.pickers').draw(self,g)
- elseif kind=='menu' or kind=='settings' or kind=='actions' then require('lib.ui.menus').draw(self,g)
+ elseif kind=='menu' or kind=='settings' then require('lib.ui.menus').draw(self,g)
  elseif kind=='help' or kind=='info' then require('lib.ui.info').draw(self,g)
  elseif kind=='sync' then require('lib.ui.sync').draw(self,g)
  elseif kind=='completion' then Completion.draw(self,g)
@@ -282,7 +276,7 @@ function A:draw(ctx,g)
   W.text(self,g,240,80,S.title,32,'center');g:text_box(20,200,440,280,kind=='blocked' and S.blocked or S.recovery,{font=self.fonts[32],color=self.ink})
   if kind=='blocked' then W.button(self,g,16,696,448,88,S.help,'help') else W.button(self,g,16,580,448,96,S.retry,'retry_load');W.button(self,g,16,696,448,88,S.fresh,'fresh') end
  else
-  W.top(self,g,kind=='blocked' and S.blocked or kind=='recovery' and S.recovery or S.title,kind~='blocked' and kind~='recovery')
+  W.top(self,g,S.title,true)
   g:text_box(20,140,440,420,self.page.text or '',{font=self.fonts[26],color=self.ink})
   W.button(self,g,16,696,448,88,kind=='confirm' and S.ok or S.back,kind=='confirm' and 'accept' or 'ok')
  end

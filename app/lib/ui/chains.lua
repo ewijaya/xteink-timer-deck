@@ -21,12 +21,12 @@ function U.action(a,h)
  elseif action=='ch_arm' then a:arm('chain',arg,r.gen)
  elseif action=='ch_keep' then a:disarm()
  elseif action=='ch_delete_inline' then local def=H.find(a.state,arg);if def and a:command('CH_DELETE',nil,{id=def.id,rev=def.rev}) then a:disarm() end
- elseif action=='ch_new' then if #a.state.ch.saved>=C.CHAIN_CAPACITY then a:message(S.chain_full) else a:push({kind='chain_new'}) end
+ elseif action=='ch_new' then if #a.state.ch.saved>=C.CHAIN_CAPACITY then a:message(S.CHAIN_FULL) else a:push({kind='chain_new'}) end
  elseif action=='ch_template' then open(a,H.template(arg,a.state.set.pat))
  elseif action=='ch_from_new' then open(a,H.template('',a.state.set.pat));a:push({kind='chain_from',selected={}})
  elseif action=='ch_overview' then a:push({kind='chain_overview',id=arg})
  elseif action=='ch_edit' then
-  local d=definition(a);if d then if r.id==d.id and (r.st==1 or r.st==2) then a:message(S.chain_busy) else open(a,d,d.id,d.rev) end end
+  local d=definition(a);if d then if r.id==d.id and (r.st==1 or r.st==2) then a:message(S.ACTIVE) else open(a,d,d.id,d.rev) end end
  elseif action=='ch_save' then
   if #p.draft.steps<2 then a:message(S.chain_min)
   elseif a:command('CH_SAVE',nil,{id=p.id,rev=p.rev,definition=p.draft}) then local id=p.id or a.state.ch.last;a:go({kind='chain_overview',id=id}) end
@@ -70,7 +70,7 @@ end
 function U.draw(a,g)
  local p=a.page;local kind=p.kind;local r=a.state.ch.run;local d=definition(a);local rows={};local bottom
  if (kind=='chain_run' or kind=='chain_result') and r.st==0 then W.top(a,g,S.chains,true);W.rows(a,g,{});return end
- W.top(a,g,kind=='chains' and S.chains or kind=='chain_run' and r.snap.name or kind=='chain_result' and (r.st==4 and S.chain_stopped or S.chain_complete) or kind=='chain_edit' and (p.id and S.edit_chain or S.new_chain) or kind=='chain_step' and S.step or kind=='chain_add' and S.add_step or kind=='chain_from' and S.from_deck or S.chains,true,kind=='chain_run' and 'ch_more' or nil,'...')
+ W.top(a,g,kind=='chains' and S.chains or kind=='chain_run' and r.snap.name or kind=='chain_result' and (r.st==4 and S.chain_stopped or S.chain_complete) or kind=='chain_edit' and (p.id and S.edit_chain or S.new_chain) or kind=='chain_step' and S.step or kind=='chain_add' and S.add_step or kind=='chain_from' and S.from_deck or S.chains,true,kind=='chain_run' and 'ch_more' or nil,S.more_glyph)
  if kind=='chains' then
   if r.st~=0 then rows[#rows+1]={label=r.snap.name,value=S.active_chain,action='chain_run'} end
   for _,def in ipairs(a.state.ch.saved) do rows[#rows+1]={label=def.name~='' and def.name or S.new_chain,value=#def.steps..' '..S.steps..' · '..F.duration(H.total(def)),action='ch_overview',arg=def.id,play=true,armed=a.armed and a.armed.kind=='chain' and a.armed.id==def.id} end
@@ -79,13 +79,14 @@ function U.draw(a,g)
   rows={{label=S.empty_chain,action='ch_template',arg=''},{label=S.from_deck,action='ch_from_new'}}
   for _,name in ipairs({'Pomodoro','Plank','Tea'}) do rows[#rows+1]={label=name,action='ch_template',arg=name} end
  elseif kind=='chain_overview' and d then
-  rows={{label=d.name~='' and d.name or S.new_chain,value=#d.steps..' '..S.steps..' · '..F.duration(H.total(d))..' · x'..d.rounds},{label=S.start,action='ch_start'},{label=S.steps,action='ch_steps'},{label=S.edit,action='ch_edit'},{label=S.more,action='ch_more'}}
+  rows={{label=d.name~='' and d.name or S.new_chain,value=#d.steps..' '..S.steps..' · '..F.duration(H.total(d))..' · '..S.times..d.rounds},{label=S.start,action='ch_start'},{label=S.steps,action='ch_steps'},{label=S.edit,action='ch_edit'},{label=S.more,action='ch_more'}}
  elseif kind=='chain_edit' then
-  d=p.draft;rows={{label=S.name,value=d.name,action='name'},{label=S.icon,value=d.icon==0 and S.none or C.ICON_NAMES[d.icon],action='icons'},{label=S.rounds,value='x'..d.rounds,action='ch_rounds'}}
+  d=p.draft;rows={{label=S.name,value=d.name,action='name'},{label=S.icon,value=d.icon==0 and S.none or C.ICON_NAMES[d.icon],action='icons'},{label=S.rounds,value=S.times..d.rounds,action='ch_rounds'}}
   for n,v in ipairs(d.steps) do rows[#rows+1]={label=n..'. '..F.step_label(v,n),value=F.duration(v.sec),action='ch_step',arg=n} end
   rows[#rows+1]={label=S.add_step,action='ch_add'};bottom={S.save,'ch_save'}
  elseif kind=='chain_step' then
-  d=p.draft;rows={{label=S.name,value=d.name,action='name'},{label=S.icon,value=d.icon==0 and S.none or C.ICON_NAMES[d.icon],action='icons'},{label=S.time,value=F.duration(d.sec),action='ch_time'},{label=S.alert,value=C.PATTERNS[d.pat+1],action='pattern'}}
+  d=p.draft;rows={{label=S.name,value=d.name,action='name'},{label=S.icon,value=d.icon==0 and S.none or C.ICON_NAMES[d.icon],action='icons'},{label=S.time,value=F.duration(d.sec),action='ch_time'}}
+  if W.pattern_enabled(a) then rows[#rows+1]={label=S.alert,value=C.PATTERNS[d.pat+1],action='pattern'} end
   if p.index then rows[#rows+1]={label=S.move_up,action='ch_step_move',arg=-1};rows[#rows+1]={label=S.move_down,action='ch_step_move',arg=1};rows[#rows+1]={label=S.remove,action='ch_step_remove'} end
   bottom={S.done,'ch_step_save'}
  elseif kind=='chain_add' then rows={{label=S.new_timer,action='ch_new_step'},{label=S.from_deck,action='ch_from'}}
@@ -97,17 +98,17 @@ function U.draw(a,g)
   rows[#rows+1]={label=S.duplicate,action='ch_duplicate'};rows[#rows+1]={label=S.move_up,action='ch_move',arg=-1};rows[#rows+1]={label=S.move_down,action='ch_move',arg=1};rows[#rows+1]={label=S.delete,action='ch_delete'};rows[#rows+1]={label=S.all_chains,action='chains'}
  elseif kind=='chain_steps' then
   d=p.run and r.snap or d;if d then for n,v in ipairs(d.steps) do rows[#rows+1]={label=(p.run and n==r.idx and '> ' or '')..n..'. '..F.step_label(v,n),value=F.duration(v.sec)} end end
- elseif kind=='chain_busy' then rows={{label=S.chain_busy},{label=S.active_chain,action='chain_run'}}
+ elseif kind=='chain_busy' then rows={{label=S.ACTIVE},{label=S.active_chain,action='chain_run'}}
  elseif kind=='chain_run' and r.st~=0 then
   local step=r.snap.steps[r.idx];local value=H.value(r,a.sec);local days,time=F.detail(value or 0,true,not P.seconds(a.state.set.secs,true,{type=0},value or 0));local t=token(r);p.token=t
   Draw.ring(g,value or 0,step.sec,r.st==1 and 'Running' or 'Paused',a.ink)
   W.text(a,g,240,180,string.format(S.step_of,r.idx,#r.snap.steps),26,'center');W.text(a,g,240,218,W.fit(a,F.step_label(step,r.idx),330,26),26,'center')
   local height=#time>5 and 64 or 96;Digits.draw(g,time,(480-Digits.width(time,height))//2,270,height,a.ink)
-  W.text(a,g,240,375,P.seconds(a.state.set.secs,true,{type=0},value or 0) and 'SEC' or 'MIN',22,'center');if r.snap.rounds>1 then W.text(a,g,240,410,string.format(S.round_of,r.round,r.snap.rounds),22,'center') end;W.text(a,g,240,440,days,22,'center')
+  W.text(a,g,240,375,P.seconds(a.state.set.secs,true,{type=0},value or 0) and S.sec or S.min,22,'center');if r.snap.rounds>1 then W.text(a,g,240,410,string.format(S.round_of,r.round,r.snap.rounds),22,'center') end;W.text(a,g,240,440,days,22,'center')
   local next_step=r.snap.steps[r.idx%#r.snap.steps+1];W.text(a,g,240,540,W.fit(a,r.idx==#r.snap.steps and r.round==r.snap.rounds and S.last_step or S.next..F.step_label(next_step,r.idx%#r.snap.steps+1)..' '..F.duration(next_step.sec),440,26),26,'center')
   if r.away>0 then W.text(a,g,240,590,r.away..S.elapsed_away,22,'center') elseif a.banner and a.banner.gen==r.gen and a.banner.step==r.idx and a.banner.round==r.round then W.text(a,g,240,590,W.fit(a,a.banner.text,440,22),22,'center') end
   W.button(a,g,16,676,160,112,r.st==1 and S.pause or S.resume,'ch_primary',t,nil,nil,true)
-  W.button(a,g,184,676,180,112,S.restart,'ch_restart',t,nil,nil,false,22);W.button(a,g,372,676,92,112,'Skip','ch_skip',t,nil,nil,false,22);return
+  W.button(a,g,184,676,180,112,S.restart,'ch_restart',t,nil,nil,false,22);W.button(a,g,372,676,92,112,S.skip_short,'ch_skip',t,nil,nil,false,22);return
  elseif kind=='chain_result' and r.st~=0 then
   W.text(a,g,240,200,r.snap.name,40,'center');W.text(a,g,240,300,#r.snap.steps*r.snap.rounds..' '..S.steps,32,'center');W.text(a,g,240,370,r.skipped..S.skipped,26,'center')
   W.button(a,g,16,580,448,88,S.again,'ch_start',r.id);W.button(a,g,16,696,448,88,S.done,'ch_done',token(r));return

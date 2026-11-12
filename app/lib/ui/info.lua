@@ -3,10 +3,9 @@ local I={}
 function I.draw(a,g)
  local p=a.page
  if p.kind=='help' then
-  W.top(a,g,'Timer Deck '..require('lib.gen.version'),true)
-  require('lib.ui.nav').hit(a,120,0,360,80,'about_tap')
-  local text=a.help_pages[(p.offset or 0)+1] or '';g:text_box(20,100,440,540,text,{font=a.fonts[26],color=a.ink})
-  W.pager(a,g,p.offset or 0,#a.help_pages)
+  W.top(a,g,p.title or 'Timer Deck '..require('lib.gen.version'),true)
+  local text=(p.pages or a.help_pages)[(p.offset or 0)+1] or '';g:text_box(20,100,440,540,text,{font=a.fonts[26],color=a.ink})
+  W.pager(a,g,p.offset or 0,#(p.pages or a.help_pages))
  else W.top(a,g,S.info,true);local rows={};for _,line in ipairs(a.diagnostics) do rows[#rows+1]={label=line} end;W.rows(a,g,rows) end
 end
 return I

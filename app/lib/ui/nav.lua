@@ -22,7 +22,7 @@ function N.input(a,ev)
   end
   if ev.key=='up' then
    if a.page.kind=='deck' and a.focus and a.deck_entries and a.focus>#a.deck_entries then return {action=({'new_timer','chains','menu'})[a.focus-#a.deck_entries]} end
-   if a.page.kind=='deck' and a.focus and a.deck_entries[a.focus] then local i=a.deck_entries[a.focus];local r=a.state.ch.run;return {action=i.chain and (r.st>=3 and 'chain_run' or 'ch_primary') or 'primary',id=i.id,gen=i.gen,arg=i.chain and {gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round} or nil} end
+   if a.page.kind=='deck' and a.focus and a.deck_entries[a.focus] then local i=a.deck_entries[a.focus];local r=a.state.ch.run;return {action=i.chain and 'ch_primary' or 'primary',id=i.id,gen=i.gen,arg=i.chain and {gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round} or nil} end
    if a.page.kind=='chain_run' then return {action='ch_primary',arg=a.page.token} end
    if a.page.kind=='completion' then local t=a.queue[a.queue_pos];if t then return {action='dismiss',id=t.id,gen=t.gen} end end
    if a.page.kind=='detail' then local i=require('lib.core.model').find(a.state,a.page.id);if i then return {action='primary',id=i.id,gen=i.gen} end end

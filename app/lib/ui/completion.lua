@@ -9,7 +9,7 @@ function Q.draw(a,g)
  W.icon(a,g,i.icon,192,110,96);W.text(a,g,240,230,W.fit(a,F.label(i),450,40),40,'center')
  Digits.draw(g,'00:00',(480-Digits.width('00:00',96))//2,310,96,a.ink)
  W.text(a,g,240,440,S.states[4],32,'center');W.text(a,g,240,490,S.finished_prefix..F.moment(i.done,a.now),26,'center')
- if #q>1 then W.button(a,g,16,560,120,88,'<','browse',-1);W.button(a,g,344,560,120,88,'>','browse',1) end
+ if #q>1 then W.button(a,g,16,560,120,88,S.prev_glyph,'browse',-1);W.button(a,g,344,560,120,88,S.next_glyph,'browse',1) end
  W.button(a,g,16,676,#q>1 and 292 or 448,112,S.dismiss,'dismiss',nil,i.id,i.gen,true,32)
  if #q>1 then W.button(a,g,324,676,140,112,S.clear_all,'clear_all',nil,nil,nil,false,22) end
 end

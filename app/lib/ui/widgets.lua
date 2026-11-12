@@ -1,5 +1,7 @@
 local Nav=require('lib.ui.nav')
 local W={}
+function W.pattern_enabled(a) return a.ctx.frontlight~=nil and a.state.set.light==1 end
+function W.count_enabled(a) return a.state.set.flash==1 or W.pattern_enabled(a) end
 function W.text(a,g,x,y,text,size,align,color)
  g:text(x,y,tostring(text),{font=a.fonts[size or 26],align=align or 'left',color=color or a.ink,tabular=true})
 end
@@ -26,7 +28,7 @@ function W.pager(a,g,page,count,bottom)
  a.page_count=count;if count<=1 then return end
  local y=(bottom or 712)-56
  W.text(a,g,240,y+17,string.format(require('lib.ui.strings').pager,page+1,count),22,'center')
- W.text(a,g,24,y+17,'<',22);W.text(a,g,456,y+17,'>',22,'right')
+ W.text(a,g,24,y+17,require('lib.ui.strings').prev_glyph,22);W.text(a,g,456,y+17,require('lib.ui.strings').next_glyph,22,'right')
  Nav.hit(a,0,y,240,56,'page',-1);Nav.hit(a,240,y,240,56,'page',1)
 end
 function W.rows(a,g,rows,per)
@@ -34,9 +36,10 @@ function W.rows(a,g,rows,per)
  for n=1,per do
   local row=rows[page*per+n];if not row then break end
   local y=80+(n-1)*96
-  if row.armed then W.text(a,g,20,y+4,W.fit(a,(a.state.ch.run.id==row.arg and a.state.ch.run.st~=0 and 'Stop and delete ' or 'Delete ')..'"'..row.label..'"?',440,22),22);W.button(a,g,0,y+40,240,56,require('lib.ui.strings').delete,'ch_delete_inline',row.arg);W.button(a,g,240,y+40,240,56,require('lib.ui.strings').keep,'ch_keep')
+  if row.armed then W.text(a,g,20,y+4,W.fit(a,string.format(a.state.ch.run.id==row.arg and a.state.ch.run.st~=0 and require('lib.ui.strings').stop_delete_label or require('lib.ui.strings').delete_label,row.delete_label or row.label),440,22),22);W.button(a,g,0,y+40,240,56,require('lib.ui.strings').delete,row.item and 'delete' or 'ch_delete_inline',row.arg,row.id,row.gen);W.button(a,g,240,y+40,240,56,require('lib.ui.strings').keep,'ch_keep')
   else W.text(a,g,20,y+16,W.fit(a,row.label,row.play and 320 or 440,row.value and 26 or 32),row.value and 26 or 32)
-  if row.value then W.text(a,g,20,y+53,W.fit(a,row.value,row.play and 320 or 440,22),22) end
+  if row.value then W.text(a,g,20,y+(row.note and 40 or 53),W.fit(a,row.value,row.play and 320 or 440,22),22) end
+  if row.note then W.text(a,g,20,y+67,W.fit(a,row.note,440,22),22) end
   g:line(16,y+95,464,y+95,{color=a.ink})
   if row.action then Nav.hit(a,0,y,row.play and 360 or 480,96,row.action,row.arg,row.id,row.gen) end
   if row.play then W.button(a,g,360,y,120,96,require('lib.ui.strings').start,'ch_start',row.arg) end end

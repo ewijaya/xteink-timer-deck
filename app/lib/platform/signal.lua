@@ -7,7 +7,7 @@ function S.stop(a)
  if a.ctx.frontlight then a.ctx.frontlight:reset() end
  if a.flash then a.flash=false;a:invalidate(true) end
 end
-function S.start(a,pattern,preview)
+function S.start(a,pattern,preview,channels)
  S.stop(a)
  local events={};local elapsed=0
  local light=a.ctx.frontlight and a.state.set.light==1
@@ -15,7 +15,7 @@ function S.start(a,pattern,preview)
   for n,d in ipairs(Alerts.patterns[pattern+1]) do events[#events+1]={at=elapsed,on=n%2==1};elapsed=elapsed+d end
   events[#events+1]={at=elapsed,on=false}
  end
- if a.state.set.flash==1 then events[#events+1]={at=700,flash=true};a.flash=true;a:invalidate() end
+ if a.state.set.flash==1 and (not preview or channels) then events[#events+1]={at=700,flash=true};a.flash=true;a:invalidate() end
  if #events==0 then return end
  table.sort(events,function(x,y) return x.at<y.at end)
  local signal={events=events,at=0,index=1,preview=preview};a.signal=signal

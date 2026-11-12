@@ -6,7 +6,9 @@ function Form.draw(a,g)
  if d.type==0 and not a.page.live then rows[#rows+1]={label=S.time,value=d.st==2 and S.reset_duration or F.duration(d.dur),action=d.st~=2 and 'edit_time' or nil} end
  rows[#rows+1]={label=S.name,value=d.name=='' and S.none or d.name,action='name'}
  rows[#rows+1]={label=S.icon,value=C.ICON_NAMES[d.icon] or S.none,action='icons'}
- if d.type==0 and not a.page.live then rows[#rows+1]={label=S.alert,value=C.PATTERNS[d.pat+1],action='pattern'};rows[#rows+1]={label=S.count,value=tostring(d.cnt),action='count'} end
+ if d.type==0 and not a.page.live and W.pattern_enabled(a) then rows[#rows+1]={label=S.alert,value=C.PATTERNS[d.pat+1],action='pattern'} end
+ if d.type==0 and not a.page.live and W.count_enabled(a) then rows[#rows+1]={label=S.count,value=tostring(d.cnt),action='count'} end
+ if a.page.id then rows[#rows+1]={label=S.delete,delete_label=F.label(d),action='arm_delete',id=a.page.id,gen=a.page.gen,item=true,armed=a.armed and a.armed.kind=='item' and a.armed.id==a.page.id} end
  W.rows(a,g,rows)
  if not a.page.live then
   if not a.page.id and d.type==0 then W.button(a,g,0,712,240,88,S.start_timer,'save_form',true,nil,nil,true);W.button(a,g,240,712,240,88,S.save,'save_form',false)

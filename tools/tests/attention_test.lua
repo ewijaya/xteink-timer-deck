@@ -33,7 +33,7 @@ for mode=0,2 do for typ=0,1 do for _,v in ipairs({59,60,61,599,600,601}) do for 
  assert(P.seconds(mode,detail,{type=typ},v)==expected)
 end end end end;print('HOST MOCK Passed TD01')
 a,c=fresh(1);a:command('SETTINGS',nil,{values={secs=2}});advance(a,c,1150);assert(a.state.items[1].st==3);print('HOST MOCK Passed TD05')
-for app=0,2 do for _,dark in ipairs({false,true}) do local ink,paper=Theme.colors(app,dark);local x,y=Theme.colors(app,dark,true);assert(x==paper and y==ink) end end
+local ink,paper=Theme.colors(false);local x,y=Theme.colors(true);assert(ink==15 and paper==0 and x==paper and y==ink)
 print('HOST MOCK Passed TU14')
 -- Cadence simulates an hour of a two-hour countdown; no per-second polling in minute modes.
 for mode=0,2 do
