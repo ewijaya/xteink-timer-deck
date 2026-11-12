@@ -26,7 +26,7 @@ function N.input(a,ev)
    if a.page.kind=='chain_run' then return {action='ch_primary',arg=a.page.token} end
    if a.page.kind=='completion' then local t=a.queue[a.queue_pos];if t then return {action='dismiss',id=t.id,gen=t.gen} end end
    if a.page.kind=='detail' then local i=require('lib.core.model').find(a.state,a.page.id);if i then return {action='primary',id=i.id,gen=i.gen} end end
-   return a.hits[a.focus or 1]
+   return a.focus and a.hits[a.focus] or nil
   end
  elseif ev.type=='pointer' then
   a.focus=nil

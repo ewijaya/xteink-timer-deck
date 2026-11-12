@@ -78,3 +78,15 @@ do
  assert(a.state.items[1].att>1 and a.state.items[1].sil==0)
  print('HOST MOCK Passed TA16')
 end
+-- TA17: three inverted frames, partial restores, one final full refresh (R1 entry excluded).
+do
+ local a,c=fresh(3,0);a.page={kind='completion'};a.shown['1:1']=true;c.waves={}
+ local invalid=a.invalidate;local inverted,restores,last_flash=0,0,false
+ a.invalidate=function(self,full)
+  if self.flash and not last_flash then inverted=inverted+1 elseif not self.flash and last_flash then assert(not full,'TA17 restore must be partial');restores=restores+1 end
+  last_flash=not not self.flash;return invalid(self,full)
+ end
+ c:advance(7000);local full=0;for _,wave in ipairs(c.waves) do if wave=='full' then full=full+1 end end
+ assert(inverted==3 and restores==3 and full==1,'TA17 '..inverted..'/'..restores..'/'..full)
+ print('HOST MOCK Passed TA17')
+end

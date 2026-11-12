@@ -13,9 +13,9 @@ function D.draw(a,g)
  N.hit(a,70,235,340,112,'peek')
  W.text(a,g,240,362,unit,22,'center')
  local hint=i.type==0 and i.st==1 and v and F.ratio(v,i.dur,100) or 100
- if hint<=10 then g:rect(150,401,180,36,{color=a.ink,fill=true});W.text(a,g,240,408,S.last10,22,'center',a.paper)
- elseif hint<=25 then W.text(a,g,240,408,S.last25,22,'center')
- else W.text(a,g,240,408,i.lim==1 and S.limit or (i.type==1 and S.count_up..' ' or '')..S.states[i.st+1],22,'center') end
+ if hint<=10 then g:rect(150,401,180,36,{color=a.ink,fill=true});W.text(a,g,240,408,S.last10,22,'center',a.paper,true)
+ elseif hint<=25 then W.text(a,g,240,408,S.last25,22,'center',nil,true)
+ else W.text(a,g,240,408,i.lim==1 and S.limit or (i.type==1 and S.count_up..' ' or '')..S.states[i.st+1],22,'center',nil,true) end
  if i.type==0 then W.text(a,g,240,522,S.of..F.duration(i.dur),26,'center') end
  if i.st==1 then W.text(a,g,240,560,(i.type==0 and S.ends or S.started)..F.moment(i.anc,a.now),26,'center') end
  if i.type==0 and i.st==1 then W.text(a,g,240,600,a:coverage(i),22,'center') end

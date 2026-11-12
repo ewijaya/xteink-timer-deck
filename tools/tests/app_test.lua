@@ -106,3 +106,8 @@ do
  end)
  assert(#failures==0,table.concat(failures,', '))
 end
+-- POL-06: new stopwatch Start and initial list focus.
+do
+ local c=R.new();local a=App.new(c);a:action({action='new_watch'});a:action({action='save_form',arg=true});assert(a.page.kind=='detail' and a.state.items[1].type==1 and a.state.items[1].st==1)
+ a:go({kind='menu'});a:draw(c,R.canvas(c));a:input(c,{type='key',key='up',phase='up'});assert(a.page.kind=='menu');a:input(c,{type='key',key='down',phase='up'});assert(a.hits[a.focus].action=='new_watch')
+end

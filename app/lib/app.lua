@@ -47,6 +47,10 @@ end
 function A:message(text)
  self:push({kind='message',text=text})
 end
+function A:toast(text)
+ if self.ctx.dialog then local _,err=self.ctx.dialog:toast(text);if not err then return end;self.ctx.log:error('E-DIALOG') end
+ self:message(text)
+end
 function A:callback(fn,...)
  local outer=self.in_callback;self.in_callback=true
  local args=table.pack(...)
@@ -56,7 +60,7 @@ function A:callback(fn,...)
  return ok,result
 end
 function A:confirm(text,fn)
- local opts=type(text)=='table' and text or {title=text}
+ local opts=type(text)=='table' and text or S.dialogs[text] or {title=text,ok_text=S.delete,cancel_text=S.keep}
  if self.ctx.dialog then
   local _,err=self.ctx.dialog:confirm(opts,function(ctx,yes) self:callback(function() self:sample();self:event();if yes then fn() end;self:plan() end) end)
   if not err then return end;self.ctx.log:error('E-DIALOG')
@@ -76,13 +80,13 @@ function A:event(command,initial)
  local working=self.state;local changed,rollback=false,false
  if M.due(working,self.sec) then working=M.copy(working);changed,rollback=M.reconcile(working,self.sec) elseif self.sec then working.trusted=self.sec end
  if changed or self.unsaved then
-  if self:commit(working,true) then self.unsaved=false end
+  if self:commit(working,true) then if self.unsaved then self:toast(S.saved) end;self.unsaved=false end
  else self.state=working;self.ctx.state=working end
  if rollback then self.warning=S.rollback end
  local success=true
  if command then
   local candidate,result=M.command(self.state,command,self.sec)
-  if result~='OK' then success=false;if result~='STALE' then self:message(S[result] or S.INVALID) end
+  if result~='OK' then success=false;self:toast(S[result] or S.INVALID)
   elseif not same(candidate,self.state) then success=self:commit(candidate,false) end
  elseif initial or M.checkpoint_due(self.state,self.sec,self.last_save) then local checkpoint=not initial;self.checkpoint=checkpoint;self:commit(M.copy(self.state),true);self.checkpoint=false end
  self.event_changed=changed;self:prune();self:completion();self:effects();self:plan();return success
@@ -174,8 +178,16 @@ function A:pick_field(key,value)
  else form.draft[key]=value end
 end
 function A:help()
- self.help_pages={};local text=S.help_text
- while #text>0 do local _,_,used=self.fonts[26]:layout(text,440,540);assert(used and used>0);self.help_pages[#self.help_pages+1]=text:sub(1,used);text=text:sub(used+1) end
+ self.help_pages={};self.help_topics={};local page={};local used=0
+ for topic_heading,topic_body in (S.help_text..'\n'):gmatch('([^\n]+)\n([^\n]+)\n') do
+  local _,height,consumed=self.fonts[26]:layout(topic_body,420,500)
+  assert(consumed==#topic_body,'help topic exceeds one page');height=height+26
+  local size=height+46
+  if used+size>540 and #page>0 then self.help_topics[#self.help_topics+1]=page;page={};used=0 end
+  page[#page+1]={heading=topic_heading,body=topic_body,y=100+used,height=height};used=used+size
+ end
+ if #page>0 then self.help_topics[#self.help_topics+1]=page end
+ for n,topics in ipairs(self.help_topics) do local text={};for _,topic in ipairs(topics) do text[#text+1]=topic.heading..'\n'..topic.body end;self.help_pages[n]=table.concat(text,'\n') end
  self:push({kind='help'})
 end
 function A:action(h)
@@ -193,11 +205,11 @@ function A:action(h)
   end
   if p.kind=='completion' then return self:action({action='clear_all'}) end
   if (p.kind=='form' or p.kind=='chain_edit' or p.kind=='chain_step') and not p.live and not same(p.draft,p.original) or p.kind=='keypad' and p.dirty then self:confirm((p.kind=='keypad' and not p.edit or p.kind=='form' and not p.id) and S.discard_new or S.discard,function() self:pop() end) else self:pop() end
- elseif action=='new_timer' then if #self.state.items>=C.CAPACITY then self:message(S.FULL) else self:push({kind='keypad'}) end
+ elseif action=='new_timer' then if #self.state.items>=C.CAPACITY then self:toast(S.FULL) else self:push({kind='keypad'}) end
  elseif action=='digit' then p.dirty=true;if p.replace and arg~='back' then p.digits=nil end;p.replace=false;p.digits=F.keypad(p.digits,arg)
  elseif action=='days' then p.dirty=true;p.days=math.max(0,math.min(999,(p.days or 0)+arg))
  elseif action=='create' or action=='more' then
-  local dur=F.keypad_seconds(p.digits);if dur<1 then self:message(S.zero);return true end
+  local dur=F.keypad_seconds(p.digits);if dur<1 then self:toast(S.zero);return true end
   if action=='more' then self:push({kind='form',draft={type=0,name='',icon=0,dur=dur,pat=self.state.set.pat,cnt=self.state.set.cnt,st=0},original={}})
   elseif self:command(arg and 'CREATE_START' or 'CREATE',nil,{type=0,dur=dur}) then self:go(arg and {kind='detail',id=self.state.sel} or {kind='deck'}) end
  elseif action=='new_watch' then self:open_form()
@@ -214,13 +226,13 @@ function A:action(h)
  elseif action=='time_done' then local v=(p.days or 0)*86400+F.keypad_seconds(p.digits);if v<1 or v>C.MAX_SEC then self:message(S.INVALID) else self:pick_field('dur',v);self:pop() end
  elseif action=='name' then
   local form=self:form_page();self.ctx.input:text({title=form.kind=='chain_edit' and S.chain_name or form.kind=='chain_step' and S.step_name or form.draft.type==0 and S.timer_name or S.watch_name,text=form.draft.name,max_bytes=C.NAME_MAX},function(ctx,value)
-   self:callback(function() self:sample();self:event();if value~=nil then local normalized=F.name(value);if normalized then self:pick_field('name',normalized) else self:message(S.name_rule) end end;self:invalidate() end)
+   self:callback(function() self:sample();self:event();if value~=nil then local normalized=F.name(value);if normalized then self:pick_field('name',normalized) else self:toast(S.name_rule) end end;self:invalidate() end)
   end)
  elseif action=='icons' then self:push({kind='icons',title=S.icon,key='icon',value=p.draft.icon})
  elseif action=='pattern' or action=='count' then self:push({kind='picker',title=action=='pattern' and S.alert or S.count,key=action=='pattern' and 'pat' or 'cnt',value=action=='pattern' and p.draft.pat or p.draft.cnt-1,options=action=='pattern' and C.PATTERNS or C.COUNTS})
  elseif action=='save_form' then
   local d=p.draft;local fields=p.id and {values=p.live and {name=d.name,icon=d.icon} or d.type==0 and {name=d.name,icon=d.icon,pat=d.pat,cnt=d.cnt,dur=d.st==0 and d.dur or nil} or {name=d.name,icon=d.icon}} or d
-  if self:command(p.id and 'EDIT' or arg and 'CREATE_START' or 'CREATE',p,fields) then self:go((p.id or arg) and {kind='detail',id=p.id or self.state.sel} or {kind='deck'}) end
+  if self:command(p.id and 'EDIT' or arg and d.type==0 and 'CREATE_START' or 'CREATE',p,fields) then if not p.id and arg and d.type==1 then local i=M.find(self.state,self.state.sel);if not self:command('PRIMARY',i) then return true end end;self:go((p.id or arg) and {kind='detail',id=p.id or self.state.sel} or {kind='deck'}) end
  elseif action=='pick' then
   if p.setting then if self:command('SETTINGS',nil,{values={[p.key]=p.key=='cnt' and arg+1 or arg}}) then self:pop() end
   else self:pick_field(p.key,p.key=='cnt' and arg+1 or arg);self:pop() end
@@ -247,12 +259,13 @@ function A:action(h)
   end end)
  elseif action=='retry_load' then
   local state,status=Store.load(self.ctx,self.sec);if state then self.state=state;self.ctx.state=state;self.mode=status;self:go({kind='deck'});self:event(nil,status~='ok') end
- elseif action=='fresh' then self:confirm(S.erase_text,function()
+ elseif action=='fresh' then self:confirm(S.fresh_question,function()
   local original=self.ctx.state;local previous=self.state
   self.mode='new';self.state=M.new(self.sec);if self:commit(M.copy(self.state),false) then self:go({kind='deck'}) else self.ctx.state=original;self.state=previous;self.mode='recovery' end
  end)
  elseif action=='accept' then local fn=p.accept;self:pop();fn()
  elseif action=='ok' then self:pop()
+ elseif action=='test_alert' then if W.count_enabled(self) then Signal.start(self,self.state.set.pat,true,true) end
  elseif action=='preview_pattern' then self:preview_pattern(arg)
  else return false end
  return true
@@ -271,7 +284,7 @@ function A:input_event(ctx,ev)
  if ev.type=='pointer' and not self.signal and (ev.phase=='down' or ev.phase=='cancel') then self.ms=began;N.input(self,ev);return true end
  self:sample()
  if self.swallow then if ev.phase=='up' or ev.phase=='cancel' then self.swallow=nil end;return true end
- if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';local preview=self.signal.preview;Signal.stop(self);if preview then self:invalidate(true);return true end;self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st==3 or r.st==1 and r.cue==1 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end
+ if self.signal then self.swallow=ev.phase=='down' or ev.phase=='hold';local preview=self.signal.preview;Signal.stop(self,true);if preview then self:invalidate(true);return true end;self:event({action='SILENCE',targets=self.queue});local r=self.state.ch.run;if r.st==3 or r.st==1 and r.cue==1 then self:command('CH_SILENCE',nil,{gen=r.gen,step=r.snap.steps[r.idx].id,round=r.round}) end;self:invalidate(true);return true end
  self:event()
  if self.fatal then return false end
  local h=N.input(self,ev);if h=='consumed' then return true elseif h=='redraw' then self:invalidate();return true elseif not h then return false end
@@ -299,8 +312,8 @@ function A:draw(ctx,g)
   if kind=='blocked' then W.button(self,g,16,696,448,88,S.help,'help') else W.button(self,g,16,580,448,96,S.retry,'retry_load');W.button(self,g,16,696,448,88,S.fresh,'fresh') end
  else
   W.top(self,g,S.title,true)
-  g:text_box(20,140,440,420,self.page.text or '',{font=self.fonts[26],color=self.ink})
-  W.button(self,g,16,696,448,88,kind=='confirm' and S.ok or S.back,kind=='confirm' and 'accept' or 'ok')
+  g:text_box(20,140,440,420,(self.page.text or '')..(self.page.options and self.page.options.message and '\n'..self.page.options.message or ''),{font=self.fonts[26],color=self.ink})
+  if kind=='confirm' then W.button(self,g,0,712,240,88,self.page.options and self.page.options.ok_text or S.ok,'accept');W.button(self,g,240,712,240,88,self.page.options and self.page.options.cancel_text or S.keep,'back') else W.button(self,g,16,696,448,88,S.back,'ok') end
  end
  if self.focus and self.hits[self.focus] and kind~='deck' then local h=self.hits[self.focus];g:rect(h.x+2,h.y+2,h.w-4,h.h-4,{color=self.ink,line_width=4}) end
 end

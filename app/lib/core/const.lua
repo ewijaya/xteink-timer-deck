@@ -13,7 +13,7 @@ function C.add_time(now,duration)
  return now+duration
 end
 C.COPY={
- title='TIMER DECK',empty='No timers yet',info='Device information',back='Back',
+ title='TIMER DECK',help_title='Help',empty='No timers yet',info='Device information',back='Back',
  notice='This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.',
  fatal='Something went wrong',retry='Try again',
 
@@ -31,21 +31,25 @@ C.COPY={
  rollback='Clock changed. Timers restored from last saved time.',
  open_strip='ALERTS ONLY WHILE TIMER DECK IS OPEN',enable_awake='Turn on Stay awake',use_lock='Use lock screen',
  coverage={'Alert: only while open','Alert: screen stays on','Alert: lock screen'},leave_title='Leave Timer Deck?',leave_text='Timers keep counting. You will not be alerted until you open Timer Deck again.',leave='Leave',stay='Stay',
- erase_text='Reset saved data? All Timer Deck items and settings will be removed.',restored='Saved data was restored from a backup.',recovery='Saved data could not be read. Try again reloads saved data. Start fresh removes old timers and settings after confirmation.',blocked='Saved data needs a newer Timer Deck version.',fresh='Start fresh',ok='OK',
+ erase_text='Reset saved data?',erase_message='All Timer Deck items and settings will be removed.',fresh_question='Start fresh?',fresh_message='Old timers and settings will be removed.',cancel='Cancel',discard_button='Discard',keep_editing='Keep editing',keep_running='Keep running',restored='Saved data was restored from a backup.',recovery='Saved data could not be read. Try again reloads saved data. Start fresh removes old timers and settings after confirmation.',blocked='Saved data needs a newer Timer Deck version.',fresh='Start fresh',ok='OK',
  finished_away='FINISHED AWAY',queue='%d OF %d DONE',away_queue='AWAY %d OF %d',
  no_chains='No chains yet',new_chain='New chain',empty_chain='Empty chain',from_deck='From Deck timers',rounds='Rounds',steps='Steps',add_step='Add step',duplicate='Duplicate',move_up='Move up',move_down='Move down',remove='Remove',
  active_chain='View active chain',chain_min='Add at least 2 steps',chain_max='This chain has 10 steps',
- last_step='Last step',sec='SEC',min='MIN',times='×',number='#%02d',badge='%02d',skip_short='Skip',more_glyph='...',prev_glyph='<',next_glyph='>',toggle={'>','II','>','OK'},delete_label='Delete "%s"?',stop_delete_label='Stop and delete "%s"?',screen_only='Finished timers show on screen only.',results='Import results',chain_name='Chain name',step_name='Step name',edit_chain='Edit chain',step='Step',step_of='STEP %d OF %d',round_of='ROUND %d OF %d',pager='MORE · %d OF %d',at='at ',tap_refresh=' · tap to refresh',
+ last_step='Last step',saved='Saved.',minus='−',test_alert='Test alert',channels_off='Flash and light are off',sec='SEC',min='MIN',times='×',number='#%02d',badge='%02d',skip_short='Skip',more_glyph='...',prev_glyph='<',next_glyph='>',toggle={'>','II','>','OK'},delete_label='Delete "%s"?',stop_delete_label='Stop and delete "%s"?',screen_only='Finished timers show on screen only.',results='Import results',chain_name='Chain name',step_name='Step name',edit_chain='Edit chain',step='Step',step_of='STEP %d OF %d',round_of='ROUND %d OF %d',pager='MORE · %d OF %d',at='at ',tap_refresh=' · tap to refresh',
  coverage_text='Timer Deck can alert you only while it is on screen. Stay awake keeps the reader on for timers that end within 4 hours.',coverage_later=' This timer ends later than that, so it is not covered yet.',
  restart='Restart step',skip='Skip step',stop='Stop chain',stop_question='Stop this chain?',stop_delete='Stop and delete this chain?',chain_complete='Chain complete',chain_stopped='Chain stopped',again='Run again',all_chains='All chains',add='Add steps',
  file_error='Could not write the file. Try again.',import_ok='Imported definitions. See timerdeck-import-result.txt.',import_result_error='Imported, but the result file could not be written.',last25='RUNNING · LAST 25%',last10='LAST 10%',
- export='Export deck',import='Import file',exported='Saved to /AppFiles/timerdeck/timerdeck-export.txt',DUPLICATE='This file was already imported.',import_failed='Nothing was imported. See timerdeck-import-result.txt.',import_missing='No import file found. Put timerdeck-import.txt in /AppFiles/timerdeck/.',
+ export='Export deck',import='Import file',exported='Saved to /AppFiles/timerdeck/timerdeck-export.txt',DUPLICATE='This file was already imported.',import_failed_title='Import failed',import_failed='Nothing was imported. See timerdeck-import-result.txt.',import_missing='No import file found. Put timerdeck-import.txt in /AppFiles/timerdeck/.',
  help_text=[[No sound
 This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.
 Timers
 Tap New timer, type the time, then tap Start timer. Save keeps it for later. The deck holds ten timers and stopwatches.
 On the deck
-Tap the button at the right of a row to start or pause it. Tap the row to open it. Swipe a row left to delete it.
+Tap the button at the right of a row to start or pause it. Tap the row to open it. Long press a row to start or pause. Swipe a row left to delete it.
+Exact time
+Tap the digits of a running timer showing minutes for exact time. Tap again to refresh.
+Menu and Data
+Menu has New stopwatch and Device information. Settings, Data imports and exports definitions.
 Side buttons
 The lower button moves to the next item. The upper button starts, pauses or dismisses it.
 When a timer ends
@@ -89,5 +93,13 @@ C.COPY.keypad_hint='H : MIN : SEC'
 C.COPY.line='Line '
 C.COPY.import_errors={lines='File exceeds %d lines',name='Invalid name',size='File exceeds 16384 bytes',utf8='Invalid UTF-8',chain='Chain needs 2–10 steps and a valid total',fields='Invalid duration, icon, alert or count',orphan='Step without a chain',watch='Invalid stopwatch',definition='Invalid chain',kind='Unknown kind',empty='No definitions found'}
 
+C.COPY.dialogs={
+ [C.COPY.erase_text]={title=C.COPY.erase_text,message=C.COPY.erase_message,ok_text=C.COPY.reset,cancel_text=C.COPY.keep},
+ [C.COPY.fresh_question]={title=C.COPY.fresh_question,message=C.COPY.fresh_message,ok_text=C.COPY.fresh,cancel_text=C.COPY.cancel},
+ [C.COPY.stop_question]={title=C.COPY.stop_question,ok_text=C.COPY.stop,cancel_text=C.COPY.keep_running},
+ [C.COPY.stop_delete]={title=C.COPY.stop_delete,ok_text=C.COPY.delete,cancel_text=C.COPY.keep},
+ [C.COPY.discard]={title=C.COPY.discard,ok_text=C.COPY.discard_button,cancel_text=C.COPY.keep_editing},
+ [C.COPY.discard_new]={title=C.COPY.discard_new,ok_text=C.COPY.discard_button,cancel_text=C.COPY.keep_editing},
+}
 C.COUNTS={};for n=C.COUNT_MIN,C.COUNT_MAX do C.COUNTS[#C.COUNTS+1]=tostring(n) end
 return C

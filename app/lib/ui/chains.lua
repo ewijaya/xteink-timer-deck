@@ -21,17 +21,17 @@ function U.action(a,h)
  elseif action=='ch_arm' then a:arm('chain',arg,r.gen)
  elseif action=='ch_keep' then a:disarm()
  elseif action=='ch_delete_inline' then local def=H.find(a.state,arg);if def and a:command('CH_DELETE',nil,{id=def.id,rev=def.rev}) then a:disarm() end
- elseif action=='ch_new' then if #a.state.ch.saved>=C.CHAIN_CAPACITY then a:message(S.CHAIN_FULL) else a:push({kind='chain_new'}) end
+ elseif action=='ch_new' then if #a.state.ch.saved>=C.CHAIN_CAPACITY then a:toast(S.CHAIN_FULL) else a:push({kind='chain_new'}) end
  elseif action=='ch_template' then open(a,H.template(arg,a.state.set.pat))
  elseif action=='ch_from_new' then open(a,H.template('',a.state.set.pat));a:push({kind='chain_from',selected={}})
  elseif action=='ch_overview' then a:push({kind='chain_overview',id=arg})
  elseif action=='ch_edit' then
-  local d=definition(a);if d then if r.id==d.id and (r.st==1 or r.st==2) then a:message(S.ACTIVE) else open(a,d,d.id,d.rev) end end
+  local d=definition(a);if d then if r.id==d.id and (r.st==1 or r.st==2) then a:toast(S.ACTIVE) else open(a,d,d.id,d.rev) end end
  elseif action=='ch_save' then
-  if #p.draft.steps<2 then a:message(S.chain_min)
+  if #p.draft.steps<2 then a:toast(S.chain_min)
   elseif a:command('CH_SAVE',nil,{id=p.id,rev=p.rev,definition=p.draft}) then local id=p.id or a.state.ch.last;a:go({kind='chain_overview',id=id}) end
- elseif action=='ch_rounds' then p.draft.rounds=p.draft.rounds%C.CHAIN_ROUNDS+1
- elseif action=='ch_add' then if #p.draft.steps>=C.CHAIN_STEPS then a:message(S.chain_max) else a:push({kind='chain_add'}) end
+ elseif action=='ch_rounds' then p.draft.rounds=math.max(1,math.min(C.CHAIN_ROUNDS,p.draft.rounds+(arg or 1)))
+ elseif action=='ch_add' then if #p.draft.steps>=C.CHAIN_STEPS then a:toast(S.chain_max) else a:push({kind='chain_add'}) end
  elseif action=='ch_new_step' then step(a)
  elseif action=='ch_step' then step(a,arg)
  elseif action=='ch_step_save' then
@@ -46,7 +46,7 @@ function U.action(a,h)
   local found;for n,id in ipairs(p.selected) do if id==arg then found=n end end
   if found then table.remove(p.selected,found) else p.selected[#p.selected+1]=arg end
  elseif action=='ch_add_selected' then
-  local e=editor(a);if #p.selected+#e.draft.steps>C.CHAIN_STEPS then a:message(S.chain_max) else
+  local e=editor(a);if #p.selected+#e.draft.steps>C.CHAIN_STEPS then a:toast(S.chain_max) else
    for _,id in ipairs(p.selected) do local i=M.find(a.state,id);if i and i.type==0 then local d=e.draft;d.steps[#d.steps+1]={id=d.next_step,name=i.name,icon=i.icon,sec=i.dur,pat=i.pat};d.next_step=d.next_step+1 end end
    while a.page~=e do a:pop() end
   end
@@ -70,18 +70,19 @@ end
 function U.draw(a,g)
  local p=a.page;local kind=p.kind;local r=a.state.ch.run;local d=definition(a);local rows={};local bottom
  if (kind=='chain_run' or kind=='chain_result') and r.st==0 then W.top(a,g,S.chains,true);W.rows(a,g,{});return end
- W.top(a,g,kind=='chains' and S.chains or kind=='chain_run' and r.snap.name or kind=='chain_result' and (r.st==4 and S.chain_stopped or S.chain_complete) or kind=='chain_edit' and (p.id and S.edit_chain or S.new_chain) or kind=='chain_step' and S.step or kind=='chain_add' and S.add_step or kind=='chain_from' and S.from_deck or S.chains,true,kind=='chain_run' and 'ch_more' or nil,S.more_glyph)
+ W.top(a,g,kind=='chains' and S.chains or kind=='chain_run' and r.snap.name or kind=='chain_result' and (r.st==4 and S.chain_stopped or S.chain_complete) or kind=='chain_edit' and (p.id and S.edit_chain or S.new_chain) or kind=='chain_step' and S.step or kind=='chain_add' and S.add_step or kind=='chain_from' and S.from_deck or S.chains,true,kind=='chain_run' and 'ch_more' or nil,{glyph='more'})
  if kind=='chains' then
   if r.st~=0 then rows[#rows+1]={label=r.snap.name,value=S.active_chain,action='chain_run'} end
   for _,def in ipairs(a.state.ch.saved) do rows[#rows+1]={label=def.name~='' and def.name or S.new_chain,value=#def.steps..' '..S.steps..' · '..F.duration(H.total(def)),action='ch_overview',arg=def.id,play=true,armed=a.armed and a.armed.kind=='chain' and a.armed.id==def.id} end
-  bottom={S.new_chain,'ch_new'}
+  if #rows==0 then W.text(a,g,240,240,S.no_chains,32,'center') end
+  bottom={{glyph='plus',text=S.new_chain},'ch_new'}
  elseif kind=='chain_new' then
   rows={{label=S.empty_chain,action='ch_template',arg=''},{label=S.from_deck,action='ch_from_new'}}
   for _,name in ipairs({'Pomodoro','Plank','Tea'}) do rows[#rows+1]={label=name,action='ch_template',arg=name} end
  elseif kind=='chain_overview' and d then
   rows={{label=d.name~='' and d.name or S.new_chain,value=#d.steps..' '..S.steps..' · '..F.duration(H.total(d))..' · '..S.times..d.rounds},{label=S.start,action='ch_start'},{label=S.steps,action='ch_steps'},{label=S.edit,action='ch_edit'},{label=S.more,action='ch_more'}}
  elseif kind=='chain_edit' then
-  d=p.draft;rows={{label=S.name,value=d.name,action='name'},{label=S.icon,value=d.icon==0 and S.none or C.ICON_NAMES[d.icon],action='icons'},{label=S.rounds,value=S.times..d.rounds,action='ch_rounds'}}
+  d=p.draft;rows={{label=S.name,value=d.name,action='name'},{label=S.icon,value=d.icon==0 and S.none or C.ICON_NAMES[d.icon],action='icons'},{label=S.rounds,value=S.times..d.rounds,stepper=true}}
   for n,v in ipairs(d.steps) do rows[#rows+1]={label=n..'. '..F.step_label(v,n),value=F.duration(v.sec),action='ch_step',arg=n} end
   rows[#rows+1]={label=S.add_step,action='ch_add'};bottom={S.save,'ch_save'}
  elseif kind=='chain_step' then
@@ -101,6 +102,7 @@ function U.draw(a,g)
  elseif kind=='chain_busy' then rows={{label=S.ACTIVE},{label=S.active_chain,action='chain_run'}}
  elseif kind=='chain_run' and r.st~=0 then
   local step=r.snap.steps[r.idx];local value=H.value(r,a.sec);local days,time=F.detail(value or 0,true,not P.seconds(a.state.set.secs,true,{type=0},value or 0));local t=token(r);p.token=t
+  local width=440//#r.snap.steps;for n=1,#r.snap.steps do local x=20+(n-1)*width;g:rect(x,84,width-4,8,{color=a.ink,fill=n<r.idx,line_width=2});if n==r.idx then local half=(width-4)//2;g:polygon({x,84,x+half,84,x+half,92,x,92},{color=a.ink,fill=true}) end end
   Draw.ring(g,value or 0,step.sec,r.st==1 and 'Running' or 'Paused',a.ink)
   W.text(a,g,240,180,string.format(S.step_of,r.idx,#r.snap.steps),26,'center');W.text(a,g,240,218,W.fit(a,F.step_label(step,r.idx),330,26),26,'center')
   local height=#time>5 and 64 or 96;Digits.draw(g,time,(480-Digits.width(time,height))//2,270,height,a.ink)

@@ -1,14 +1,14 @@
 local Alerts=require('lib.core.alerts')
 local S={}
 -- A single sequencer handles both light phases and the 700 ms flash boundary.
-function S.stop(a)
+function S.stop(a,quiet)
  if a.signal_timer then a.signal_timer:cancel();a.signal_timer=nil end
  a.signal=nil
  if a.ctx.frontlight then a.ctx.frontlight:reset() end
- if a.flash then a.flash=false;a:invalidate(true) end
+ if a.flash then a.flash=false;if not quiet then a:invalidate(true) end end
 end
 function S.start(a,pattern,preview,channels)
- S.stop(a)
+ S.stop(a,true)
  local events={};local elapsed=0
  local light=a.ctx.frontlight and a.state.set.light==1
  if light then
@@ -22,12 +22,12 @@ function S.start(a,pattern,preview,channels)
  local function step()
   while events[signal.index] and events[signal.index].at<=signal.at do
    local e=events[signal.index];signal.index=signal.index+1
-   if e.flash then a.flash=false;a:invalidate(true)
+   if e.flash then a.flash=false;a:invalidate()
    elseif e.on then local bright=a.original_light and a.original_light.on and a.original_light.brightness>=70;a.ctx.frontlight:set(bright and {on=false} or {on=true,brightness=100})
    else a.ctx.frontlight:reset() end
   end
   local next_event=events[signal.index]
-  if not next_event then a.signal=nil;a.signal_timer=nil;return end
+  if not next_event then a.signal=nil;a.signal_timer=nil;if (not preview or channels) and not Alerts.choose(a.state,a.sec) then a:invalidate(true) end;return end
   local delay=next_event.at-signal.at
   a.signal_timer=a.ctx:after(delay,function() a:callback(function() signal.at=next_event.at;step() end) end)
  end

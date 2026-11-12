@@ -16,7 +16,7 @@ a.page={kind='deck'};emit('deck-one');a.page={kind='detail',id=a.state.sel};emit
 local i=a.state.items[1];a:action({action='primary',id=i.id,gen=i.gen});emit('running');i=a.state.items[1];a:action({action='primary',id=i.id,gen=i.gen});emit('paused')
 a:action({action='edit'});a:action({action='edit_time'});emit('days-keypad')
 a.page={kind='deck'};a.stack={};for n=2,10 do a:event({action='CREATE',dur=240*n,type=n%2,icon=n,name='Item '..n}) end;emit('deck-ten')
-a:action({action='menu'});emit('menu');a:action({action='settings'});emit('settings');a.page.offset=1;emit('settings-page2');a:help();emit('help');a:diagnose();a.page={kind='info'};emit('information')
+a:action({action='menu'});emit('menu');a:action({action='settings'});emit('settings');a:help();for n=1,#a.help_pages do a.page.offset=n-1;emit(n==1 and 'help' or 'help-page'..n) end;a:diagnose();a.page={kind='info'};emit('information')
 a.page={kind='deck'};a.stack={};local s=M.new(a.sec);s=M.command(s,{action='CREATE_START',dur=1,name='Tea',icon=1},a.sec);M.reconcile(s,a.sec+1);a.state=s;c.state=s;a:completion();emit('completion')
 local g=R.canvas(c);App.draw_fatal(c,g,'E-DRAW');print(assert(J:encode({name='HOST-MOCK-fatal',commands=g.commands})))
 
@@ -51,3 +51,17 @@ a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:command('CH_SAVE',nil,{de
 a.state.ch.run={st=0};a.page={kind='chain_run'};emit('chain-run-deleted')
 
 a.state=M.new(a.sec);a.state.set.flash=0;a.state.set.light=0;a.page={kind='settings'};emit('settings-alerts-off')
+-- N5 glyph and state sheets, all still HOST MOCK.
+do
+ local Glyph=require('lib.ui.glyphs');local W=require('lib.ui.widgets')
+ for _,dark in ipairs({false,true}) do
+  local g=R.canvas(c);a.ink=15;a.paper=0;g:clear(0);W.text(a,g,20,16,'Glyphs: 24 / 32 / 44 px',26)
+  for n,name in ipairs(Glyph.names) do local y=72+(n-1)*86;W.text(a,g,20,y+8,name,22);for k,size in ipairs({24,32,44}) do local count=g.command_count;Glyph.draw(g,name,210+k*70,y,size,15);assert(g.command_count-count<=4) end end
+  print(assert(J:encode({name='HOST-MOCK-glyphs-'..(dark and 'dark' or 'light'),dark=dark,commands=g.commands})))
+ end
+end
+a.state=M.new(a.sec);a.page={kind='deck'};a.chain_entry=nil;a.coverage_warning=nil;a.warning=nil;a.stack={};a.armed=nil
+for n=1,10 do a.state=M.command(a.state,{action='CREATE',dur=100,type=n==10 and 1 or 0,name='Timer '..n},a.sec) end
+for n,i in ipairs(a.state.items) do if n%4==2 then i.st=1;i.gen=1;i.anc=a.sec+80 elseif n%4==3 then i.st=2;i.gen=1;i.val=50 elseif n%4==0 then i.st=3;i.gen=1;i.val=0;i.done=a.sec end end
+emit('deck-states-dense')
+a.page={kind='completion'};a.queue=M.completions(a.state,true);a.queue_pos=1;emit('completion-two')

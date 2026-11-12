@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'build/previews'
 FONT='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+BOLD='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 def render(frame):
  im=Image.new('RGB',(480,800),'white');d=ImageDraw.Draw(im)
  def color(v):return 'black' if v else 'white'
@@ -20,9 +21,11 @@ def render(frame):
    else:d.arc(box,start=a[3],end=a[4],fill=fill,width=w)
   elif m=='line':d.line(tuple(a[:4]),fill=fill,width=w)
   elif m in ('polyline','polygon'):
-   points=list(zip(a[0][::2],a[0][1::2]));d.line(points+([points[0]] if m=='polygon' else []),fill=fill,width=w)
+   points=list(zip(a[0][::2],a[0][1::2]));
+   if m=='polygon' and o.get('fill'):d.polygon(points,fill=fill)
+   else:d.line(points+([points[0]] if m=='polygon' else []),fill=fill,width=w)
   elif m in ('text','text_box'):
-   px=o.get('font',{}).get('line_height',24);font=ImageFont.truetype(FONT,px);x,y=a[:2];s=a[2] if m=='text' else a[4]
+   px=o.get('font',{}).get('line_height',24);font=ImageFont.truetype(BOLD if o.get('bold') else FONT,px);x,y=a[:2];s=a[2] if m=='text' else a[4]
    if m=='text':
     width=d.textlength(s,font=font)
     x-=width/2 if o.get('align')=='center' else width if o.get('align')=='right' else 0
@@ -44,9 +47,9 @@ def main():
  for old in OUT.glob('HOST-MOCK-*.png'):old.unlink()
  raw=subprocess.check_output([str(ROOT/'build/toolchain/lua-5.5.0/src/lua'),'tools/tests/preview.lua'],cwd=ROOT,text=True)
  (OUT/'commands.jsonl').write_text(raw)
- images=[]
+ images=[];names=set()
  for line in raw.splitlines():
-  frame=json.loads(line);im=render(frame);im.save(OUT/(frame['name']+'.png'));images.append(im)
+  frame=json.loads(line);assert frame['name'] not in names,'duplicate preview name';names.add(frame['name']);im=render(frame);im.save(OUT/(frame['name']+'.png'));images.append(im)
  sheet=Image.new('RGB',(240*4,400*math.ceil(len(images)/4)),'#ddd')
  for i,im in enumerate(images):sheet.paste(im.resize((240,400)),((i%4)*240,(i//4)*400))
  sheet.save(OUT/'HOST-MOCK-contact-sheet.png')

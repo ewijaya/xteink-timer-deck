@@ -1767,7 +1767,7 @@ Not verified by this PRD: anything on the device. No package was built, nothing 
   "app_id": "timerdeck",
   "display_name": "Timer Deck",
   "version": "0.1.0",
-  "description": "Ten independent countdowns and stopwatches, with chains. No sound or vibration: alerts are a screen flash and a light pulse.",
+  "description": "This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.",
   "entry": "index.lua",
   "requires": ["pointer"],
   "permissions": [],

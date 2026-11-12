@@ -18,8 +18,8 @@ function D.ring(g,remaining,duration,state,ink,cx,cy,r)
   local angle=math.rad(630-deg);g:circle(cx+math.floor((r-12)*math.cos(angle)),cy+math.floor((r-12)*math.sin(angle)),16,{color=ink,fill=true})
  end
 end
-function D.bar(g,x,y,width,value,total,ink)
+function D.bar(g,x,y,width,value,total,ink,paused)
  local w=D.ratio(value,total,width);local h=D.ratio(value,total,100)<=25 and 8 or 4
- if w>0 then g:rect(x,y,w,h,{color=ink,fill=true}) end
+ if w>0 then g:rect(x,y,w,h,{color=ink,fill=not paused,line_width=1}) end
 end
 return D

@@ -13,7 +13,7 @@ function G.view(s,now)
   assert(math.type(i.anc)=='integer' and i.anc>=0 and math.type(i.val)=='integer' and i.val>=0)
   if i.st==1 and i.type==0 then
    if i.anc<=at then if at-i.anc<=C.AUTO_RESET_SEC then done[#done+1]={label=label,done=i.anc} end
-   else running[#running+1]={label=label,left=i.anc-at,anc=i.anc,chain=chain} end
+   else running[#running+1]={label=label,left=i.anc-at,anc=i.anc,chain=chain,dur=i.dur} end
   elseif i.st==3 and i.sil==0 and i.done<=at and at-i.done<=C.AUTO_RESET_SEC then done[#done+1]={label=label,done=i.done}
   elseif i.st==1 and i.type==1 then watches[#watches+1]={label=label,left=i.val+math.min(C.MAX_SEC-i.val,math.max(0,at-i.anc)),anc=i.anc}
   elseif i.st==2 then paused[#paused+1]={label=label,left=i.val,type=i.type} end
@@ -34,18 +34,18 @@ function G.view(s,now)
      anc=assert(C.add_time(anc,r.snap.steps[idx].sec))
     end
     if round>r.snap.rounds then if at-anc<=C.AUTO_RESET_SEC then done[#done+1]={label=r.snap.name,done=anc} end
-    else running[#running+1]={label=F.step_label(r.snap.steps[idx],idx),left=anc-at,anc=anc,chain=r.snap.name..' '..idx..'/'..#r.snap.steps};local left=anc-at;chain_interval=left<=150 and 30 or left<=3600 and 60 or left<=21600 and 300 or 900 end
+    else running[#running+1]={label=F.step_label(r.snap.steps[idx],idx),left=anc-at,anc=anc,dur=r.snap.steps[idx].sec,chain=r.snap.name..' '..idx..'/'..#r.snap.steps};local left=anc-at;chain_interval=left<=150 and 30 or left<=3600 and 60 or left<=21600 and 300 or 900 end
    elseif r.st==2 then paused[#paused+1]={label=r.snap.name,left=r.anc,type=0};chain_interval=900
    elseif r.st==3 and r.sil~=1 and at>=r.ev and at-r.ev<=C.AUTO_RESET_SEC then done[#done+1]={label=r.snap.name,done=r.ev} end
   end
  end)
  if not ok then v.title=S.open_app;return v end
- table.sort(done,function(a,b) return a.done<b.done end);table.sort(running,function(a,b) return a.anc<b.anc end)
+ if #done>1 then table.sort(done,function(a,b) return a.done<b.done end) end;if #running>1 then table.sort(running,function(a,b) return a.anc<b.anc end) end
  if #done>0 then
   local i=done[1];v.title=S.times_up;v.label=i.label;v.caption=S.finished_lock..F.moment(i.done,now);v.more=#done>1 and '+'..(#done-1)..S.more_suffix or nil
   v.blink=at-i.done<180 and ((at-i.done)//30)%2==0;v.full=at-i.done<180
  elseif #running>0 then
-  local i=table.remove(running,1);v.title=i.label;local days,digits=F.detail(i.left,true,true);v.digits=digits;v.days=days;v.caption=S.min_left;v.label=S.ends..F.moment(i.anc,now);v.chain=i.chain
+  local i=table.remove(running,1);v.title=i.label;local days,digits=F.detail(i.left,true,true);v.digits=digits;v.days=days;v.caption=S.min_left;v.label=S.ends..F.moment(i.anc,now);v.chain=i.chain;v.ratio=F.ratio(i.left,i.dur,440)
  elseif #watches>0 then local i=table.remove(watches,1);v.title=i.label;v.label='+'..i.left//60 ..S.minutes;v.caption=S.since..F.moment(i.anc,now)
  elseif #paused>0 then local i=table.remove(paused,1);v.title=i.label;v.label=S.paused_lower;v.caption=F.compact(i.left,i.type==0,true)..(i.type==0 and S.left or '')
  else v.title=S.idle end

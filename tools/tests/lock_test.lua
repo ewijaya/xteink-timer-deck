@@ -23,3 +23,4 @@ do
  for _,v in ipairs(g.commands) do if v.method=='text' then local text=v.args[3];assert(text~='-1%','TL07 unreadable battery');if text=='MIN LEFT' then caption=v.args[2] elseif text:find('ends ',1,true)==1 then label=v.args[2] end end end
  assert(caption and label and caption<label,'TL07 caption order');print('HOST MOCK Passed TL07')
 end
+do local v=G.view(timer(60),now);assert(v.ratio==440);local n=M.copy(now);n.epoch_sec=at+30;assert(G.view(timer(60),n).ratio==220);print('HOST MOCK TL07 ratio passed') end

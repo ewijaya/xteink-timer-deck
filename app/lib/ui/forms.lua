@@ -11,7 +11,7 @@ function Form.draw(a,g)
  if a.page.id then rows[#rows+1]={label=S.delete,delete_label=F.label(d),action='arm_delete',id=a.page.id,gen=a.page.gen,item=true,armed=a.armed and a.armed.kind=='item' and a.armed.id==a.page.id} end
  W.rows(a,g,rows)
  if not a.page.live then
-  if not a.page.id and d.type==0 then W.button(a,g,0,712,240,88,S.start_timer,'save_form',true,nil,nil,true);W.button(a,g,240,712,240,88,S.save,'save_form',false)
+  if not a.page.id then W.button(a,g,0,712,240,88,d.type==0 and S.start_timer or S.start,'save_form',true,nil,nil,true);W.button(a,g,240,712,240,88,S.save,'save_form',false)
   else W.button(a,g,0,712,480,88,S.save,'save_form',false,nil,nil,true) end
  end
 end

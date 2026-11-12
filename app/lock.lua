@@ -24,6 +24,7 @@ function on_draw(ctx,g)
   end
   if view.label then g:text(240,view.digits and 475 or 420,view.label,{font=fonts.medium,color=ink,align='center'}) end
   if view.caption then g:text(240,view.digits and 420 or 475,view.caption,{font=fonts.small,color=ink,align='center'}) end
+  if view.ratio and view.ratio>0 then g:rect(20,455,view.ratio,8,{color=ink,fill=true}) end
   if view.chain then g:text(240,525,view.chain,{font=fonts.small,color=ink,align='center'}) end
   if view.more then g:text(240,525,view.more,{font=fonts.small,color=ink,align='center'}) end
   for n,line in ipairs(view.lines) do g:text(20,565+(n-1)*48,line,{font=fonts.small,color=ink}) end

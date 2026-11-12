@@ -10,7 +10,7 @@ function K.draw(a,g)
   for n,step in ipairs({-10,-1,1,10}) do W.button(a,g,(n-1)*120,214,120,56,step>0 and '+'..step or tostring(step),'days',step) end
  else W.text(a,g,240,174,days~='' and days or S.keypad_hint,22,'center') end
  local y0=p.edit and 276 or 200;local cell=p.edit and 84 or 92
- for n,key in ipairs({'1','2','3','4','5','6','7','8','9','00','0',S.backspace_glyph}) do W.button(a,g,(n-1)%3*160,y0+(n-1)//3*cell,160,cell,key,'digit',key==S.backspace_glyph and 'back' or key,nil,nil,false,32) end
+ for n,key in ipairs({'1','2','3','4','5','6','7','8','9','00','0',S.backspace_glyph}) do W.button(a,g,(n-1)%3*160,y0+(n-1)//3*cell,160,cell,key==S.backspace_glyph and {glyph='backspace'} or key,'digit',key==S.backspace_glyph and 'back' or key,nil,nil,false,32) end
  if p.edit then W.button(a,g,16,688,448,96,S.done,'time_done',nil,nil,nil,true,32)
  else
   W.button(a,g,16,580,448,96,S.start_timer,'create',true,nil,nil,true,32)

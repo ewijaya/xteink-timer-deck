@@ -79,7 +79,7 @@ do
  end end
  for _,light in ipairs({false,true}) do for _,awake in ipairs({false,true}) do for flash=0,1 do for pulse=0,1 do
   local cc=R.new({keep_awake=awake,capabilities={frontlight=light}});local aa=App.new(cc);aa.state.set.flash=flash;aa.state.set.light=pulse;aa.page={kind='settings'};local seen={}
-  for page=0,1 do aa.page.offset=page;aa:draw(cc,R.canvas(cc));for _,h in ipairs(aa.hits) do if h.arg then seen[h.arg]=true;assert(h.arg~='app' and h.arg~='style') end end end
+  for page=0,1 do aa.page.offset=page;aa:draw(cc,R.canvas(cc));assert(aa.page_count==1,'Settings must fit one page');for _,h in ipairs(aa.hits) do if h.arg then seen[h.arg]=true;assert(h.arg~='app' and h.arg~='style') end end end
   assert(not not seen.pat==(light and pulse==1));assert(not not seen.cnt==(flash==1 or light and pulse==1));assert(not not seen.awake==awake)
  end end end end
  print('HOST MOCK Passed TU22')
@@ -99,4 +99,26 @@ do
  collectgarbage('collect');collectgarbage('stop');local base=collectgarbage('count');for _=1,100 do local copy=M.copy(root);M.reconcile(copy,aa.sec) end;local old=(collectgarbage('count')-base)*1024
  collectgarbage('restart');collectgarbage('collect');collectgarbage('stop');base=collectgarbage('count');for _=1,100 do aa:event() end;local current=(collectgarbage('count')-base)*1024;collectgarbage('restart')
  assert(current<old,'idle heap churn did not improve');print('HOST MOCK Passed TU24 copies '..copies..' plans '..plans..'; idle allocation '..math.floor(current)..' vs copying '..math.floor(old))
+end
+-- TU23: every toast/confirmation payload fits API byte limits, including fallback.
+do
+ local S=require('lib.core.const').COPY
+ for _,key in ipairs({'exported','import_ok','zero','name_rule','FULL','CHAIN_FULL','ACTIVE','chain_min','chain_max','STALE','saved','INVALID','OVERFLOW','CLOCK','DUPLICATE'}) do assert(#S[key]<=95,key) end
+ for _,opts in pairs(S.dialogs) do assert(#opts.title<=95 and #(opts.message or '')<=191 and #opts.ok_text<=63 and #opts.cancel_text<=63) end
+ local cc=R.new();local aa=App.new(cc);aa:toast(S.exported);assert(cc.toast==S.exported and aa.page.kind=='deck')
+ cc.dialog.toast=function() return nil,'limit_exceeded' end;aa:toast(S.exported);assert(aa.page.kind=='message')
+ print('HOST MOCK Passed TU23')
+end
+-- TU26: the notice remains exact, visible on Help page 1 and the empty deck, with no other channel claims.
+do
+ local S=require('lib.core.const').COPY;local notice='This device has no sound or vibration. Timer Deck alerts you with a screen flash and a light pulse, so keep it where you can see it.'
+ assert(S.notice==notice);local cc=R.new();local aa=App.new(cc);aa:help();assert(aa.help_pages[1]:find(notice,1,true))
+ aa:go({kind='deck'});local g=R.canvas(cc);aa:draw(cc,g);local found=false;for _,cmd in ipairs(g.commands) do if cmd.method=='text_box' and cmd.args[5]==notice then found=true end end;assert(found)
+ local f=assert(io.open('app/manifest.json'));local manifest=assert(J:decode(f:read('a')));f:close();assert(manifest.description==notice)
+ local function strip(text,literal) local at=text:find(literal,1,true);while at do text=text:sub(1,at-1)..text:sub(at+#literal);at=text:find(literal,1,true) end;return text end
+ local function walk(v)
+  if type(v)=='table' then for _,x in pairs(v) do walk(x) end
+  elseif type(v)=='string' then v=strip(strip(v,notice),'No sound'):lower();for _,word in ipairs({'beep','buzz','ring','vibrate','sound','alarm','vibration'}) do assert(not v:find('%f[%a]'..word..'%f[%A]'),'banned copy '..word..': '..v) end end
+ end
+ walk(S);walk(manifest.description);print('HOST MOCK Passed TU26')
 end

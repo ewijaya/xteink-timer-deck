@@ -17,5 +17,6 @@ function U.draw(a,g)
   rows[#rows+1]={label=S.sync,action='sync'}
  end
  W.rows(a,g,rows)
+ if kind=='settings' then W.button(a,g,16,712,448,88,W.count_enabled(a) and S.test_alert or '',W.count_enabled(a) and 'test_alert' or nil);if not W.count_enabled(a) then W.text(a,g,240,722,S.test_alert,26,'center');W.text(a,g,240,754,S.channels_off,22,'center') end end
 end
 return U
