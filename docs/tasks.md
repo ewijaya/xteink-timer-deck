@@ -24,4 +24,4 @@ M2–M8 continuation (2026-11-12):
 - [x] M5: read-only adaptive lock page, TL01–TL06
 - [x] M6: chain definitions, commands, screens, TH01–TH10
 - [x] M7: styles and transactional import/export, TI01–TI04
-- [ ] M8: full host validation, package round trip, documentation/checklist handoff
+- [x] M8: full host validation, package round trip, documentation/checklist handoff
