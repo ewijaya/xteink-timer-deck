@@ -5,11 +5,13 @@ function D.draw(a,g)
  local strip=a.warning or (not a.sec and S.clock_unset) or a.coverage_warning
  local area=strip and 574 or 630
  local entries={};if a.chain_entry then entries[1]=a.chain_entry end;for _,i in ipairs(a.state.items) do entries[#entries+1]=i end
- local height=math.max(63,math.min(104,area//math.max(#entries,6)));local per=area//height
+ local paged=#entries*(a.armed and 96 or 63)>area;if paged then area=area-56 end
+ local height=math.max(a.armed and 96 or 63,math.min(104,area//math.max(#entries,6)));local per=area//height
  a.deck_entries=entries;a.deck_per=per;local page=a.page.offset or 0;a.page_count=math.max(1,(#entries+per-1)//per)
  for row=1,per do local i=entries[page*per+row];if not i then break end
   local y=80+(row-1)*height;local v=i.chain and i.val or M.value(i,a.sec)
-  if (not i.chain and a.delete_arm and a.delete_arm.id==i.id) or (i.chain and a.chain_delete==i.id) then
+  if a.armed and a.armed.kind==(i.chain and 'chain' or 'item') and a.armed.id==i.id then
+   W.text(a,g,20,y+4,W.fit(a,(i.chain and 'Stop and delete ' or 'Delete ')..'"'..F.label(i)..'"?',440,22),22)
    W.button(a,g,0,y+height-56,240,56,S.delete,i.chain and 'ch_delete_inline' or 'delete',i.chain and i.id or nil,i.id,i.gen);W.button(a,g,240,y+height-56,240,56,S.keep,i.chain and 'ch_keep' or 'keep')
   else
    if i.icon>0 then W.icon(a,g,i.icon,12,y+(height-44)//2,44) else g:rect(12,y+(height-44)//2,44,44,{color=a.ink,line_width=2,radius=7});W.text(a,g,34,y+(height-26)//2,string.format('%02d',i.num),22,'center') end
@@ -29,6 +31,7 @@ function D.draw(a,g)
   if a.focus==page*per+row then g:rect(2,y+2,476,height-4,{color=a.ink,line_width=4}) end
   g:line(0,y+height-1,479,y+height-1,{color=a.ink})
  end
+ if paged or a.page_count>1 then W.pager(a,g,page,a.page_count,strip and 654 or 710) end
  if #entries==0 then
   g:circle(240,200,70,{color=a.ink,line_width=6});W.text(a,g,240,310,S.empty,32,'center')
   g:text_box(28,370,424,190,S.notice,{font=a.fonts[26],color=a.ink})

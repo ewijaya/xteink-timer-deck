@@ -9,6 +9,7 @@ function F.name(s)
  if type(s)~='string' or s:find('[^ -~]') or s:find('[|\\]') then return nil end
  s=s:gsub(' +',' '):match('^ *(.-) *$');if #s>C.NAME_MAX then return nil end;return s
 end
+function F.step_label(step,n) return step.name~='' and step.name or C.COPY.step..' '..n end
 function F.label(i)
  if i.name~='' then return i.name end
  if i.icon>0 then return C.ICON_NAMES[i.icon] end

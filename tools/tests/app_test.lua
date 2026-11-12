@@ -54,3 +54,55 @@ do
  end
  print('HOST MOCK Passed TU17')
 end
+-- N2 cases run independently so the red run records every defect.
+do
+ local failures={}
+ local function case(id,fn) local ok,err=pcall(fn);print('HOST MOCK '..id..' '..(ok and 'Passed' or tostring(err)));if not ok then failures[#failures+1]=id end end
+ local function fresh() local c=R.new();return App.new(c),c end
+ case('TU19 / BUG-05',function()
+  for _,strip in ipairs({'chain','warning','clock','coverage'}) do
+   local a,c=fresh();for _=1,10 do a:command('CREATE',nil,{dur=100}) end
+   if strip=='chain' then local H=require('lib.core.chains');a:command('CH_SAVE',nil,{definition=H.template('Tea',0)});a:command('CH_START',{id=1},{rev=1})
+   elseif strip=='clock' then a.sec=nil elseif strip=='coverage' then a.coverage_warning='coverage' else a.warning='warning' end
+   local seen={}
+   for _=1,2 do
+    a:draw(c,R.canvas(c));local pager
+    for n,h in ipairs(a.hits) do
+     if h.action=='detail' then seen[h.id]=true end
+     if h.action=='page' and h.arg==1 then pager=h end
+     for k=1,n-1 do local b=a.hits[k];assert(h.x>=b.x+b.w or b.x>=h.x+h.w or h.y>=b.y+b.h or b.y>=h.y+h.h) end
+    end
+    assert(pager and pager.h>=56,'missing pager');a:action(pager)
+   end
+   for id=1,10 do assert(seen[id]) end;assert(a.page.offset==0,'pager wraps')
+  end
+ end)
+ case('TU20 / BUG-08',function()
+  local a,c=fresh();a:action({action='new_timer'});a.focus=3;a.peek={};a.banner='stale';a.ms=a.ms+1000
+  a:action({action='create',arg=true});assert(a.focus==nil and a.peek==nil and a.banner==nil and a.changed_at==a.ms,'page replacement bookkeeping')
+ end)
+ case('TU20 / BUG-09',function()
+  local a,c=fresh();a:command('CREATE',nil,{dur=100});a:open_form(a.state.items[1]);a:action({action='edit_time'});a:action({action='back'});assert(not c.overlay and a.page.kind=='form','unchanged time prompts')
+  a:action({action='edit_time'});a:action({action='digit',arg='2'});a:action({action='back'});assert(c.overlay)
+ end)
+ case('TU21 / BUG-10',function()
+  local a,c=fresh();a.page={kind='coverage'};a:draw(c,R.canvas(c));for _,h in ipairs(a.hits) do assert(h.action~='enable_awake','already enabled') end
+ end)
+ case('TU21 / BUG-11',function()
+  local a,c=fresh();a:action({action='settings'});a:action({action='setting',arg='secs'});assert(a.page.title=='Seconds','picker title')
+  a:action({action='back'});a:action({action='chains'});a:action({action='ch_new'});a:action({action='ch_template',arg='Tea'});a:action({action='name'});assert(c.overlay.opts.title=='Chain name')
+ end)
+ case('TU25 / BUG-14',function()
+  local a,c=fresh();a:command('CREATE',nil,{dur=100});a:action({action='arm_delete',id=1,gen=0});a:action({action='ch_arm',arg=2});assert(a.armed and a.armed.kind=='chain' and a.armed.id==2 and not a.delete_arm)
+  c:advance(5000);assert(not a.armed);a:action({action='arm_delete',id=1,gen=0});a:draw(c,R.canvas(c));c:advance(500);a:input(c,{type='pointer',phase='up',gesture='tap',x=400,y=750});assert(not a.armed and a.page.kind=='deck')
+ end)
+ case('TD03 / BUG-15',function()
+  local a,c=fresh();a:command('CREATE',nil,{dur=100});a.page={kind='detail',id=1};a:action({action='peek'});assert(not a.peek,'Ready must not peek')
+ end)
+ case('TU23 / BUG-16',function()
+  local a,c=fresh();c.dialog.confirm=function() return nil,'busy' end;a:confirm('Confirm?',function() end);assert(a.page.kind=='confirm' and c.logs[#c.logs][2]=='E-DIALOG','dialog fallback')
+  local I=require('lib.core.importer');for _=1,10 do a:command('CREATE',nil,{dur=100}) end
+  local _,err=I.propose(a.state,'timer | Tea | 10',123,a.sec);assert(not err:find('FULL',1,true),'raw import code')
+ end)
+ assert(#failures==0,table.concat(failures,', '))
+end

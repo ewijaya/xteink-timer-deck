@@ -17,3 +17,9 @@ assert(G.view(M.new(at),now).interval==3600);print('HOST MOCK Passed TL05')
 for _,state in ipairs({{}, {v=2},{v=1,items={{}}}}) do local t=R.session(files,state,'lock');t:draw();assert(t.alive and t.save_attempts==0) end
 local invalid=M.copy(now);invalid.valid=false;local t=R.session(files,s,'lock',{now=invalid});t:draw();assert(t.alive and t.save_attempts==0)
 local broken=M.copy(files);broken['lib/core/glance.lua']='error("injected")';t=R.session(broken,s,'lock');t:draw();assert(t.alive and #t.logs==1);print('HOST MOCK Passed TL06')
+-- TL07 / BUG-13: caption belongs directly below the digits; unknown battery is absent.
+do
+ local s=timer(60);local lock=R.session(files,s,'lock');lock.device.battery=function() return {percent=-1} end;local g=lock:draw();local caption,label
+ for _,v in ipairs(g.commands) do if v.method=='text' then local text=v.args[3];assert(text~='-1%','TL07 unreadable battery');if text=='MIN LEFT' then caption=v.args[2] elseif text:find('ends ',1,true)==1 then label=v.args[2] end end end
+ assert(caption and label and caption<label,'TL07 caption order');print('HOST MOCK Passed TL07')
+end

@@ -22,19 +22,26 @@ function W.top(a,g,title,back,action,label)
  if action then W.button(a,g,360,0,120,80,label,action,nil,nil,nil,false,22) end
  g:line(0,79,479,79,{color=a.ink,line_width=2})
 end
+function W.pager(a,g,page,count,bottom)
+ a.page_count=count;if count<=1 then return end
+ local y=(bottom or 712)-56
+ W.text(a,g,240,y+17,string.format(require('lib.ui.strings').pager,page+1,count),22,'center')
+ W.text(a,g,24,y+17,'<',22);W.text(a,g,456,y+17,'>',22,'right')
+ Nav.hit(a,0,y,240,56,'page',-1);Nav.hit(a,240,y,240,56,'page',1)
+end
 function W.rows(a,g,rows,per)
  local page=a.page.offset or 0;per=per or 6;local count=math.max(1,(#rows+per-1)//per);page=math.min(page,count-1)
  for n=1,per do
   local row=rows[page*per+n];if not row then break end
   local y=80+(n-1)*96
-  if row.armed then W.button(a,g,0,y,240,96,require('lib.ui.strings').delete,'ch_delete_inline',row.arg);W.button(a,g,240,y,240,96,require('lib.ui.strings').keep,'ch_keep')
+  if row.armed then W.text(a,g,20,y+4,W.fit(a,(a.state.ch.run.id==row.arg and a.state.ch.run.st~=0 and 'Stop and delete ' or 'Delete ')..'"'..row.label..'"?',440,22),22);W.button(a,g,0,y+40,240,56,require('lib.ui.strings').delete,'ch_delete_inline',row.arg);W.button(a,g,240,y+40,240,56,require('lib.ui.strings').keep,'ch_keep')
   else W.text(a,g,20,y+16,W.fit(a,row.label,row.play and 320 or 440,row.value and 26 or 32),row.value and 26 or 32)
   if row.value then W.text(a,g,20,y+53,W.fit(a,row.value,row.play and 320 or 440,22),22) end
   g:line(16,y+95,464,y+95,{color=a.ink})
   if row.action then Nav.hit(a,0,y,row.play and 360 or 480,96,row.action,row.arg,row.id,row.gen) end
   if row.play then W.button(a,g,360,y,120,96,require('lib.ui.strings').start,'ch_start',row.arg) end end
  end
- if count>1 then W.button(a,g,0,712,240,88,'<','page',-1);W.button(a,g,240,712,240,88,(page+1)..' / '..count..' >','page',1) end
+ W.pager(a,g,page,count)
  a.page_count=count
 end
 local cache,order={},{}

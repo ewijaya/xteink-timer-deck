@@ -42,3 +42,10 @@ a.state=M.new(a.sec);for n=1,3 do a.state=M.command(a.state,{action='CREATE_STAR
 a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:action({action='chains'});a:action({action='ch_new'});a:action({action='ch_template',arg='Tea'});a:action({action='ch_add'});emit('chain-add');a:action({action='ch_from'});emit('chain-from');a.page={kind='chain_busy'};emit('chain-busy')
 
 local fatal_canvas=R.canvas(c);App.draw_fatal(c,fatal_canvas,'E-DRAW');print(assert(J:encode({name='HOST-MOCK-fatal-dark',dark=true,commands=fatal_canvas.commands})))
+-- N2 navigation and paging regressions.
+a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a.warning=nil;a.coverage_warning=nil;a.chain_entry=nil
+for n=1,10 do a:command('CREATE',nil,{dur=600,name='Timer '..n}) end
+a.warning=S and S.not_saved or 'NOT SAVED - RETRYING';emit('deck-pager');a:action({action='page',arg=1});emit('deck-pager-page2');a.warning=nil;a.page.offset=0
+a:action({action='arm_delete',id=1,gen=0});emit('deck-delete-armed');a:disarm()
+a.state=M.new(a.sec);a.page={kind='deck'};a.stack={};a:command('CH_SAVE',nil,{definition=require('lib.core.chains').template('Tea',0)});a:action({action='ch_start',arg=1});emit('chain-run-single-round')
+a.state.ch.run={st=0};a.page={kind='chain_run'};emit('chain-run-deleted')

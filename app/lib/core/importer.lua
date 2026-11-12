@@ -78,7 +78,7 @@ function I.propose(s,text,digest,now)
  local candidate=M.copy(s);local result={}
  for _,record in ipairs(records) do
   local next_state,status=M.command(candidate,record,now)
-  if status~='OK' then return nil,S.line..record.line..': '..status end
+  if status~='OK' then return nil,S.line..record.line..': '..(S[status] or S.INVALID) end
   candidate=next_state;result[#result+1]=S.line..record.line..': OK'
  end
  table.insert(candidate.rc,1,{dig=digest,len=#text,n=#records});if #candidate.rc>C.RECEIPTS then table.remove(candidate.rc) end

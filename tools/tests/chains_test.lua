@@ -58,3 +58,20 @@ do
  a:input(c,{type='pointer',phase='down',x=1,y=1});assert(a.state.ch.run.sil==1)
  print('HOST MOCK Passed TH11')
 end
+do
+ local failures={};local function case(id,fn) local ok,err=pcall(fn);print('HOST MOCK '..id..' '..(ok and 'Passed' or tostring(err)));if not ok then failures[#failures+1]=id end end
+ case('TH12 / BUG-06',function()
+  local c=R.new();local a=App.new(c);local d=H.template('Tea',0);d.steps[1].sec=1;d.steps[2].sec=1
+  a:command('CH_SAVE',nil,{definition=d});a:action({action='chains'});a:action({action='ch_overview',arg=1});a:action({action='ch_start'});local depth=#a.stack
+  for _=1,3 do c:advance(2500);a:sample();a:event();assert(a.page.kind=='chain_result');for _,p in ipairs(a.stack) do assert(p.kind~='chain_run','stale Run') end;a:action({action='ch_start'});assert(#a.stack==depth,'stack growth') end
+ end)
+ case('TH12 / BUG-07',function()
+  local c=R.new();local a=App.new(c);a:command('CH_SAVE',nil,{definition=H.template('Tea',0)});a:action({action='ch_start',arg=1});a:action({action='ch_more'});a:action({action='chains'});a:action({action='ch_delete_inline',arg=1});a:action({action='back'});a:action({action='back'});a:draw(c,R.canvas(c));assert(not a.fatal)
+  a.page={kind='chain_run'};a:draw(c,R.canvas(c))
+ end)
+ case('TH13 / BUG-12',function()
+  local c=R.new();local a=App.new(c);local d=H.template('Tea',0);d.steps[1].name='';a:command('CH_SAVE',nil,{definition=d});a:action({action='ch_start',arg=1});local g=R.canvas(c);a:draw(c,g);local found=false
+  for _,v in ipairs(g.commands) do if v.method=='text' and v.args[3]=='STEP 1 OF 2' then found=true end;assert(v.args[3]~='Rounds 1 / 1') end;assert(found,'step label')
+ end)
+ assert(#failures==0,table.concat(failures,', '))
+end

@@ -19,7 +19,7 @@ C.COPY={
 
  new_timer='New timer',new_watch='New stopwatch',chains='Chains',menu='Menu',settings='Settings',help='Help / About',
  start='Start',pause='Pause',resume='Resume',dismiss='Dismiss',reset='Reset',save='Save',more='More options',start_timer='Start timer',done='Done',keep='Keep',delete='Delete',edit='Edit',
- time='Time',name='Name',icon='Icon',alert='Alert',count='Count',days='Days',none='None',backspace='<',
+ time='Time',name='Name',icon='Icon',alert='Alert',count='Count',days='days',none='None',backspace='<',
  states={'READY','RUNNING','PAUSED','FINISHED'},primary={'Start','Pause','Resume','Dismiss'},
  appearance='Appearance',seconds='Seconds',awake='Stay awake',flash='Screen flash',light='Light pulse',lockscreen='Lock screen',sync='Import and export',erase='Reset saved data',
  appearances={'Auto','Light','Dark'},seconds_modes={'Smart','Always','Never'},onoff={'Off','On'},use='Use this',preview='Preview',
@@ -35,7 +35,8 @@ C.COPY={
  finished_away='FINISHED AWAY',queue='%d OF %d DONE',away_queue='AWAY %d OF %d',
  no_chains='No chains yet',new_chain='New chain',empty_chain='Empty chain',from_deck='From Deck timers',rounds='Rounds',steps='Steps',add_step='Add step',duplicate='Duplicate',move_up='Move up',move_down='Move down',remove='Remove',
  start_chain='Start',active_chain='View active chain',chain_busy='A chain is already active',chain_min='Add at least 2 steps',chain_max='This chain has 10 steps',chain_full='You have 5 saved chains',
- last_step='Last step',
+ last_step='Last step',chain_name='Chain name',step_name='Step name',edit_chain='Edit chain',step='Step',step_of='STEP %d OF %d',round_of='ROUND %d OF %d',pager='MORE · %d OF %d',at='at ',tap_refresh=' · tap to refresh',
+ coverage_text='Timer Deck can alert you only while it is on screen. Stay awake keeps the reader on for timers that end within 4 hours.',coverage_later=' This timer ends later than that, so it is not covered yet.',
  restart='Restart step',skip='Skip step',stop='Stop chain',stop_question='Stop this chain?',stop_delete='Stop and delete this chain?',chain_complete='Chain complete',chain_stopped='Chain stopped',again='Run again',all_chains='All chains',add='Add steps',
  file_error='Could not write the file. Try again.',import_ok='Imported definitions. See timerdeck-import-result.txt.',import_result_error='Imported, but the result file could not be written.',last25='RUNNING · LAST 25%',last10='LAST 10%',
  export='Export deck',import='Import file',exported='Saved to /AppFiles/timerdeck/timerdeck-export.txt',DUPLICATE='This file was already imported.',import_failed='Nothing was imported. See timerdeck-import-result.txt.',import_missing='No import file found. Put timerdeck-import.txt in /AppFiles/timerdeck/.',

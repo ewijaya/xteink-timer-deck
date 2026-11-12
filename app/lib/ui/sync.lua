@@ -4,7 +4,7 @@ function U.action(a,h)
  local ctx=a.ctx
  if h.action=='sync' then
   local result=ctx.files:read('timerdeck-import-result.txt',0,16384)
-  a:push({kind='sync',result=result or ''})
+  local pages={};local text=result or '';while #text>0 do local _,_,used=a.fonts[22]:layout(text,440,360);assert(used and used>0);pages[#pages+1]=text:sub(1,used);text=text:sub(used+1) end;a:push({kind='sync',result=result or '',result_pages=pages})
  elseif h.action=='export' then
   local text=require('lib.core.importer').export(a.state)
   if ctx.files:write('timerdeck-export.txt',text) then a:message(S.exported) else a:message(S.file_error) end
@@ -24,7 +24,8 @@ function U.action(a,h)
 end
 function U.draw(a,g)
  W.top(a,g,S.sync,true);W.text(a,g,20,112,a.ctx.files.path,26)
- g:text_box(20,180,440,360,a.page.result or '',{font=a.fonts[22],color=a.ink})
- W.button(a,g,16,580,448,88,S.export,'export');W.button(a,g,16,696,448,88,S.import,'import')
+ g:text_box(20,180,440,360,a.page.result_pages and a.page.result_pages[(a.page.offset or 0)+1] or a.page.result or '',{font=a.fonts[22],color=a.ink})
+ W.pager(a,g,a.page.offset or 0,math.max(1,#(a.page.result_pages or {})))
+ W.button(a,g,0,712,240,88,S.export,'export');W.button(a,g,240,712,240,88,S.import,'import')
 end
 return U

@@ -1,7 +1,7 @@
 local W=require('lib.ui.widgets');local S=require('lib.ui.strings');local F=require('lib.core.format');local Digits=require('lib.ui.digits')
 local K={}
 function K.draw(a,g)
- local p=a.page;W.top(a,g,S.new_timer,true)
+ local p=a.page;W.top(a,g,p.edit and S.time or S.new_timer,true)
  local v=(p.days or 0)*86400+F.keypad_seconds(p.digits)
  local days,time=F.detail(v,true,false);local h=56
  Digits.draw(g,time,(480-Digits.width(time,h))//2,p.edit and 150 or 110,h,a.ink)

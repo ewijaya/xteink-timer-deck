@@ -34,7 +34,7 @@ function G.view(s,now)
      anc=assert(C.add_time(anc,r.snap.steps[idx].sec))
     end
     if round>r.snap.rounds then if at-anc<=C.AUTO_RESET_SEC then done[#done+1]={label=r.snap.name,done=anc} end
-    else running[#running+1]={label=r.snap.steps[idx].name,left=anc-at,anc=anc,chain=r.snap.name..' '..idx..'/'..#r.snap.steps};local left=anc-at;chain_interval=left<=150 and 30 or left<=3600 and 60 or left<=21600 and 300 or 900 end
+    else running[#running+1]={label=F.step_label(r.snap.steps[idx],idx),left=anc-at,anc=anc,chain=r.snap.name..' '..idx..'/'..#r.snap.steps};local left=anc-at;chain_interval=left<=150 and 30 or left<=3600 and 60 or left<=21600 and 300 or 900 end
    elseif r.st==2 then paused[#paused+1]={label=r.snap.name,left=r.anc,type=0};chain_interval=900
    elseif r.st==3 and r.sil~=1 and at>=r.ev and at-r.ev<=C.AUTO_RESET_SEC then done[#done+1]={label=r.snap.name,done=r.ev} end
   end
@@ -52,7 +52,7 @@ function G.view(s,now)
  local function line(s) if #v.lines<4 then v.lines[#v.lines+1]=s end end
  for _,i in ipairs(running) do line(i.label..' · '..F.compact(i.left,true,true)..' · '..F.moment(i.anc,now)) end
  for _,i in ipairs(watches) do line(i.label..' · +'..i.left//60 ..S.minutes) end
- for _,i in ipairs(paused) do line(i.label..' · paused') end
+ for _,i in ipairs(paused) do line(i.label..' · '..S.paused_lower) end
  -- Compute intervals from all items, independently of which one made the headline.
  for _,i in ipairs(s.items) do
   if i.type==0 and i.st==1 and i.anc>at then local left=i.anc-at;v.interval=math.min(v.interval,left<=150 and 30 or left<=3600 and 60 or left<=21600 and 300 or 900)
