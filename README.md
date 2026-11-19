@@ -37,9 +37,9 @@ This device has no sound or vibration. Timer Deck alerts you with a screen flash
 
 Timer Deck targets the **XTEINK X4 Pro**, InkApp API **2.18**, with a 480 × 800 portrait display. Other devices are not verified.
 
-Use a package built from this repository; see [Build from source](#build-from-source) below. Generated packages are not included in the source tree.
+Download `timerdeck-0.3.2.xtapp` from the [latest release](https://github.com/ewijaya/xteink-timer-deck/releases/latest). No account is needed. You can check the file against the release's `SHA256SUMS`. To build the package yourself, see [Build from source](#build-from-source) below.
 
-1. Copy `dist/timerdeck-0.3.2.xtapp` to the root of the reader's SD card over USB, then eject safely.
+1. Copy `timerdeck-0.3.2.xtapp` to the root of the reader's SD card over USB, then eject safely.
 2. On the reader, open **All Files**, select the package, and install it.
 3. Open **Ink App → Timer Deck**.
 
@@ -114,3 +114,7 @@ Timer Deck adapts the behavior of Pebble Timer Deck 0.7.0 for the X4 Pro's scree
 - [Saved-data format](docs/storage-format.md)
 
 Third-party components retain their license notices: Lucide icons (ISC), the vendored packager and lint tool (MIT), and Lua (MIT). Packager notices are in [tools/vendor/xtpack/NOTICE.md](tools/vendor/xtpack/NOTICE.md).
+
+## License
+
+Timer Deck is released under the [MIT License](LICENSE).

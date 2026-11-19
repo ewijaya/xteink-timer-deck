@@ -2,7 +2,7 @@
 
 Candidate **0.3.2 awaits device testing**. It fixes navigation and alert defects and simplifies Settings. Appearance and Style are removed; the app uses Ion and follows system dark mode. The owner’s 0.3.0 Style freeze remains undiagnosed. Schema 1 is unchanged: upgrade without a reset, retaining timers, chains and settings. Host checks load saves in both directions between 0.3.1 and 0.3.2, including the private backup. The encrypted package is built with the pinned community packager; its decrypted content is compared byte-for-byte with the sources.
 
-1. Copy `dist/timerdeck-0.3.2.xtapp` to the SD-card root over USB and eject safely.
+1. Download `timerdeck-0.3.2.xtapp` from the [latest release](https://github.com/ewijaya/xteink-timer-deck/releases/latest), or build it with `make package` (output in `dist/`). Copy it to the SD-card root over USB and eject safely.
 2. On the reader open All Files, tap the package, then install.
 3. If Ink App is absent: Settings → About → tap Model ten times (community guidance).
 4. Open Ink App → Timer Deck. Open Menu → Device information. Photograph its pages for DV01.
